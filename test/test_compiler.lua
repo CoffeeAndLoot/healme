@@ -115,4 +115,112 @@ return function(h, m)
                  "[@mouseover,help,nodead]")
         end)
     end)
+
+    local function binding(overrides)
+        local b = {
+            id = "b1",
+            enabled = true,
+            key = { button = "BUTTON2", shift = true },
+            action = { kind = "spell", spell = "Rejuvenation" },
+        }
+        for k, v in pairs(overrides or {}) do
+            b[k] = v
+        end
+        return b
+    end
+
+    h.describe("Compiler.Compile", function()
+        h.it("uses the spell attribute when there are no conditions", function()
+            h.attrsEq(Compiler.Compile(binding(), {}), {
+                ["shift-type2"]  = "spell",
+                ["shift-spell2"] = "Rejuvenation",
+                ["shift-unit2"]  = "mouseover",
+            })
+        end)
+
+        h.it("falls back to macro text when conditions are present", function()
+            h.attrsEq(Compiler.Compile(binding({
+                conditions = { unitFilter = "help", aliveOnly = true },
+            }), {}), {
+                ["shift-type2"]      = "macro",
+                ["shift-macrotext2"] = "/cast [@mouseover,help,nodead] Rejuvenation",
+            })
+        end)
+
+        h.it("passes author macro text through verbatim", function()
+            h.attrsEq(Compiler.Compile(binding({
+                action = { kind = "macro", macrotext = "/cast [@mouseover] Swiftmend" },
+            }), {}), {
+                ["shift-type2"]      = "macro",
+                ["shift-macrotext2"] = "/cast [@mouseover] Swiftmend",
+            })
+        end)
+
+        h.it("compiles target, focus and togglemenu to unit attributes", function()
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "target" },
+            }), {}), {
+                ["type1"] = "target",
+                ["unit1"] = "mouseover",
+            })
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "focus" },
+            }), {}), {
+                ["type1"] = "focus",
+                ["unit1"] = "mouseover",
+            })
+            -- togglemenu, never menu: SECURE_ACTIONS.menu dispatches to a
+            -- menu-function attribute that nothing in Blizzard's code sets.
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON2" },
+                action = { kind = "togglemenu" },
+            }), {}), {
+                ["type2"] = "togglemenu",
+                ["unit2"] = "mouseover",
+            })
+        end)
+
+        h.it("wraps conditional target and focus in macro text", function()
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "target" },
+                conditions = { unitFilter = "harm" },
+            }), {}), {
+                ["type1"]      = "macro",
+                ["macrotext1"] = "/target [@mouseover,harm]",
+            })
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "focus" },
+                conditions = { aliveOnly = true },
+            }), {}), {
+                ["type1"]      = "macro",
+                ["macrotext1"] = "/focus [@mouseover,nodead]",
+            })
+        end)
+
+        h.it("compiles wheel bindings with hyphenated suffixes", function()
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "WHEELUP", ctrl = true },
+            }), {}), {
+                ["ctrl-type-wheelup"]  = "spell",
+                ["ctrl-spell-wheelup"] = "Rejuvenation",
+                ["ctrl-unit-wheelup"]  = "mouseover",
+            })
+        end)
+
+        h.it("compiles nothing for a disabled binding", function()
+            h.eq(#Compiler.Compile(binding({ enabled = false }), {}), 0)
+        end)
+
+        h.it("compiles nothing for an unknown kind", function()
+            h.eq(#Compiler.Compile(binding({ action = { kind = "nonsense" } }), {}), 0)
+        end)
+
+        h.it("compiles nothing for an unknown button", function()
+            h.eq(#Compiler.Compile(binding({ key = { button = "BUTTON9" } }), {}), 0)
+        end)
+    end)
 end

@@ -108,4 +108,67 @@ function Compiler.UnitClause(conditions)
     return "[@mouseover]"
 end
 
+local MACRO_VERB = {
+    target = "/target",
+    focus  = "/focus",
+}
+
+local UNIT_KINDS = {
+    target     = true,
+    focus      = true,
+    togglemenu = true,
+}
+
+function Compiler.Compile(binding, settings)
+    settings = settings or {}
+
+    local attrs = {}
+
+    if not binding or binding.enabled == false then
+        return attrs
+    end
+
+    local key = binding.key
+    local action = binding.action
+    if not key or not action or not Compiler.IsValidButton(key.button) then
+        return attrs
+    end
+
+    local function put(name, value)
+        attrs[#attrs + 1] = { name = Compiler.AttributeName(name, key), value = value }
+    end
+
+    local kind = action.kind
+    local conds = Compiler.ConditionString(binding.conditions)
+    local clause = Compiler.UnitClause(binding.conditions)
+
+    if kind == "spell" then
+        if conds then
+            put("type", "macro")
+            put("macrotext", "/cast " .. clause .. " " .. action.spell)
+        else
+            put("type", "spell")
+            put("spell", action.spell)
+            put("unit", "mouseover")
+        end
+
+    elseif kind == "macro" then
+        put("type", "macro")
+        put("macrotext", action.macrotext)
+
+    elseif UNIT_KINDS[kind] then
+        -- togglemenu has no macro equivalent, so it never takes conditions;
+        -- Bindings.Validate rejects them before a record gets this far.
+        if conds and MACRO_VERB[kind] then
+            put("type", "macro")
+            put("macrotext", MACRO_VERB[kind] .. " " .. clause)
+        else
+            put("type", kind)
+            put("unit", "mouseover")
+        end
+    end
+
+    return attrs
+end
+
 return Compiler
