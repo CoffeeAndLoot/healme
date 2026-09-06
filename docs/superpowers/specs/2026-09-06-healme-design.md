@@ -188,10 +188,14 @@ literal string `"mouseover"`. Blizzard resolves that attribute through
 *Risk:* this depends on the hovered frame actually setting the mouseover unit,
 which requires it to be a real unit frame. Blizzard frames and every frame that
 registers via `ClickCastFrames` are unit frames, so this should hold
-universally. **Fallback if it does not:** `Registry` already reads each frame's
-own `unit` attribute at registration time, so `Secure` can fall back to
-per-frame unit attributes for the offending frame. This is the first thing to
-verify in-game.
+universally. **Fallback if it does not:** a per-frame unit attribute path in
+`Secure`, reading each frame's own `unit` attribute instead of the literal
+`"mouseover"` token. This is a designed contingency, **not implemented**.
+`Registry` does not currently read or store each frame's `unit` attribute, and
+`Secure` has no per-frame code path at all — building either is deferred until
+in-game testing (§16 item 1) shows it is actually needed. Speculative
+combat-adjacent code that cannot be exercised on the desktop is worse than an
+honest gap here.
 
 ## 8. Modules
 
@@ -203,7 +207,7 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 | `Core.lua` | AceAddon lifecycle, slash command, addon compartment entry, wiring the other modules together | Ace3 |
 | `Bindings.lua` | The binding table: create, edit, delete, validate, per-spec profiles. Knows nothing about frames or secure code. | AceDB |
 | `Compiler.lua` | Pure: one binding record in, a list of `(attribute, value)` pairs out. No WoW API. | nothing |
-| `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Reads each frame's `unit` attribute for the §7 fallback. | — |
+| `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
 | `Options.lua` | AceConfig options table plus a custom combo-capture widget. | Bindings |
 | `Serialize.lua` | Export/import strings. | AceSerializer, LibDeflate |
@@ -481,8 +485,11 @@ mid-raid.
 **Still open**, each answered by doing rather than reading:
 
 1. **Whether `mouseover` resolves reliably on every registered frame** (§7).
-   Verified in-game. The per-frame `unit` fallback is already designed, and
-   `Registry` already captures each frame's `unit` attribute for it.
+   To be verified in-game. The per-frame `unit` fallback is designed but
+   **not implemented** — `Registry` does not capture each frame's `unit`
+   attribute, and `Secure` has no per-frame code path. If in-game testing
+   shows `mouseover` failing on some frame, build the fallback at that point,
+   not before.
 2. **Whether a desktop Lua 5.1 interpreter is available** on the dev machine for
    the compiler tests. If not, the tests ship anyway and run in CI.
 3. **`RegisterForClicks("AnyUp")` versus `("AnyDown")`** (§11). `AnyUp` is the
