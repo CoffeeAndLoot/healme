@@ -68,4 +68,44 @@ function Compiler.ClickIdentifier(key)
     return wheel and wheel.identifier or nil
 end
 
+-- Ordering is fixed so that two identical bindings always compile to
+-- byte-identical macro text, which is what makes the output assertable.
+function Compiler.ConditionString(conditions)
+    if not conditions then
+        return nil
+    end
+
+    local parts = {}
+
+    if conditions.unitFilter then
+        parts[#parts + 1] = conditions.unitFilter
+    end
+
+    if conditions.deadOnly then
+        parts[#parts + 1] = "dead"
+    elseif conditions.aliveOnly then
+        parts[#parts + 1] = "nodead"
+    end
+
+    if conditions.combat == true then
+        parts[#parts + 1] = "combat"
+    elseif conditions.combat == false then
+        parts[#parts + 1] = "nocombat"
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    return table.concat(parts, ",")
+end
+
+function Compiler.UnitClause(conditions)
+    local conds = Compiler.ConditionString(conditions)
+    if conds then
+        return "[@mouseover," .. conds .. "]"
+    end
+    return "[@mouseover]"
+end
+
 return Compiler

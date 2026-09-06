@@ -72,4 +72,47 @@ return function(h, m)
             h.eq(Compiler.ClickIdentifier({ button = "WHEELDOWN" }), "wheeldown")
         end)
     end)
+
+    h.describe("Compiler.ConditionString", function()
+        h.it("returns nil when there are no conditions", function()
+            h.falsy(Compiler.ConditionString(nil))
+            h.falsy(Compiler.ConditionString({}))
+        end)
+
+        h.it("emits the unit filter", function()
+            h.eq(Compiler.ConditionString({ unitFilter = "help" }), "help")
+            h.eq(Compiler.ConditionString({ unitFilter = "harm" }), "harm")
+        end)
+
+        h.it("maps aliveOnly to nodead and deadOnly to dead", function()
+            h.eq(Compiler.ConditionString({ aliveOnly = true }), "nodead")
+            h.eq(Compiler.ConditionString({ deadOnly = true }), "dead")
+        end)
+
+        h.it("maps combat true and false to combat and nocombat", function()
+            h.eq(Compiler.ConditionString({ combat = true }), "combat")
+            h.eq(Compiler.ConditionString({ combat = false }), "nocombat")
+        end)
+
+        -- Fixed ordering is what makes compiled macro text byte-comparable.
+        h.it("orders conditions filter, life, combat regardless of table order", function()
+            h.eq(Compiler.ConditionString({
+                combat = true, aliveOnly = true, unitFilter = "help",
+            }), "help,nodead,combat")
+            h.eq(Compiler.ConditionString({
+                combat = false, deadOnly = true, unitFilter = "harm",
+            }), "harm,dead,nocombat")
+        end)
+    end)
+
+    h.describe("Compiler.UnitClause", function()
+        h.it("targets mouseover with no conditions", function()
+            h.eq(Compiler.UnitClause(nil), "[@mouseover]")
+        end)
+
+        h.it("appends conditions after the unit", function()
+            h.eq(Compiler.UnitClause({ unitFilter = "help", aliveOnly = true }),
+                 "[@mouseover,help,nodead]")
+        end)
+    end)
 end
