@@ -155,3 +155,18 @@ steps above:
       unknown button or a duplicate key): confirm the skipped count appears in
       the message ("imported N bindings (M skipped: invalid or duplicate)")
       and the broken binding does not show up in the list
+
+## Release checklist
+
+Run this section last, after every task section above has passed, before
+pushing a version tag.
+
+- [ ] Every earlier section in this file passes
+- [ ] Force each restriction scope and confirm no errors:
+      `/console secretCombatRestrictionsForced 1`, then the challenge mode,
+      encounter and PvP equivalents, testing click-casts under each
+- [ ] Test on the addon-author dummies near The MOTHERLODE!! entrance
+- [ ] Run a full Mythic+ key with BugSack loaded; the error log is clean
+- [ ] Install a third-party frame addon (Grid2, Cell, or ElvUI) and confirm its
+      frames register and click-cast
+- [ ] Uninstall it and confirm HealMe still works on Blizzard frames

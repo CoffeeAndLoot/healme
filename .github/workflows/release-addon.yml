@@ -1,0 +1,38 @@
+name: Release addon
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check TOC version matches tag
+        run: |
+          set -euo pipefail
+          TOC_VERSION=$(sed -n 's/^## Version:[[:space:]]*//p' HealMe/HealMe.toc | tr -d '\r')
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$TOC_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::TOC version (${TOC_VERSION}) does not match tag (${TAG_VERSION}). Bump HealMe.toc before tagging." >&2
+            exit 1
+          fi
+
+      - name: Build addon zip
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME}"
+          cp LICENSE HealMe/LICENSE.txt
+          zip -qr "HealMe-${VERSION}.zip" HealMe -x "*.DS_Store"
+          unzip -l "HealMe-${VERSION}.zip"
+
+      - name: Attach to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: HealMe-${{ github.ref_name }}.zip
+          generate_release_notes: true
