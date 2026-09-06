@@ -181,8 +181,9 @@ the raid reshuffles.
 
 This applies to all five action kinds: `type="spell"` and `type="macro"` use
 `@mouseover` / `unit="mouseover"`, and `type="target"`, `type="focus"`,
-`type="menu"` read the button's `unit` attribute, which is likewise the literal
-string `"mouseover"`.
+`type="togglemenu"` read the button's `unit` attribute, which is likewise the
+literal string `"mouseover"`. Blizzard resolves that attribute through
+`SecureButton_GetModifiedUnit`, which passes `mouseover` through untouched (§20).
 
 *Risk:* this depends on the hovered frame actually setting the mouseover unit,
 which requires it to be a real unit frame. Blizzard frames and every frame that
@@ -222,7 +223,7 @@ A binding record, stored in AceDB under the active profile:
     alt      = false,
   },
   action = {
-    kind      = "spell" | "macro" | "target" | "focus" | "menu",
+    kind      = "spell" | "macro" | "target" | "focus" | "togglemenu",
     spell     = "Rejuvenation",           -- kind == "spell"
     macrotext = "/cast [@mouseover] ...", -- kind == "macro", author-supplied
   },
@@ -262,12 +263,19 @@ Validation rules enforced by `Bindings.lua` before a record is accepted:
 `Compiler.Compile(binding) -> { {name, value}, ... }`
 
 **Attribute name** is `<modifier prefix><attribute><button suffix>`, e.g.
-`ctrl-type1`, `alt-ctrl-shift-spell2`. Modifier prefix order is fixed by
-Blizzard's `SecureButton_GetModifierPrefix` and must be emitted in that exact
-order — believed to be `alt-`, `ctrl-`, `shift-`, **to be confirmed against
-`Gethe/wow-ui-source` before writing the compiler** (§16). Button suffixes are
-`1`–`5` for the five mouse buttons; wheel bindings use the literal suffixes
-`wheelup` / `wheeldown` supplied by `SetBindingClick` (§12).
+`ctrl-type1`, `alt-ctrl-shift-spell2`. Both halves are verified against
+`Blizzard_FrameXML/SecureTemplates.lua` (§20):
+
+- **Modifier prefix.** `SecureButton_GetModifierPrefix` builds the string by
+  *prepending* shift, then ctrl, then alt, so the emitted order is always
+  `alt-`, `ctrl-`, `shift-`. Emitting them in any other order silently fails to
+  match.
+- **Button suffix.** `SecureButton_GetButtonSuffix` returns `"1"` for
+  `LeftButton`, `"2"` for `RightButton`, `"3"` for `MiddleButton`, and a
+  lookup-table value for `Button4`–`Button31`, giving `"4"` and `"5"`. Any other
+  button string falls through to `return "-" .. button`. **Wheel bindings
+  therefore take the suffix `-wheelup` / `-wheeldown`, with a leading hyphen**,
+  producing attribute names like `type-wheelup` and `shift-spell-wheeldown`.
 
 **Attribute values**, by action kind:
 
@@ -279,9 +287,15 @@ order — believed to be `alt-`, `ctrl-`, `shift-`, **to be confirmed against
   `macrotext=/cast [@mouseover,<conds>] <spell>`.
 - `kind == "macro"` → `type=macro`, `macrotext=<author's text>` verbatim.
   Conditions are the author's problem; HealMe does not rewrite their macro.
-- `kind == "target" | "focus" | "menu"` → `type=<kind>`, `unit=mouseover`.
+- `kind == "target" | "focus" | "togglemenu"` → `type=<kind>`, `unit=mouseover`.
   Conditions, if any, wrap it as `type=macro` with
   `/target [@mouseover,<conds>]` and equivalents.
+
+  **Use `togglemenu`, not `menu`.** `SECURE_ACTIONS.menu` dispatches to a
+  `menu-function` attribute that nothing in Blizzard's codebase sets — it is a
+  hook for a frame to supply its own menu, so `type="menu"` on a foreign frame
+  does nothing at all. `SECURE_ACTIONS.togglemenu` derives the right unit popup
+  from the resolved unit alone and works with `unit="mouseover"` (§20).
 
 **"Also target."** When the profile setting `alsoTarget` is on, a binding of
 kind `spell` compiles to `type=macro` regardless of whether it carries
@@ -302,7 +316,7 @@ Rules:
 - **`kind == "macro"` is exempt.** The author's macro text is theirs; if they
   want a `/target` line they write one. HealMe does not rewrite author macros
   (consistent with the rule above).
-- **`kind == "target" | "focus" | "menu"` are unaffected.** `target` already
+- **`kind == "target" | "focus" | "togglemenu"` are unaffected.** `target` already
   targets, and silently retargeting off a focus or a context-menu click would be
   a surprise.
 
@@ -332,26 +346,76 @@ legally set attributes on an already-secure frame. Registration out of combat
 takes the direct path. Every third-party interaction is wrapped in `pcall` so a
 broken frame addon cannot take HealMe down with it.
 
-**The exact `ClickCastHeader` snippet protocol will be read from Clique's source
-and matched, not guessed** — third-party compatibility depends on byte-level
-agreement (§16).
+The protocol is settled, matched against `Snakybo/Clicked` — Clique's
+actively-maintained successor, which documents its own header as "mostly based
+on Clique, mainly to ensure it will continue working with any addons that
+integrate with Clique directly" (§20). Five requirements fall out of it, four of
+which are easy to miss:
+
+1. **The header** is
+   `CreateFrame("Frame", "ClickCastHeader", UIParent, "SecureHandlerBaseTemplate,SecureHandlerAttributeTemplate")`,
+   carrying `clickcast_register` and `clickcast_unregister` snippets. Each reads
+   the `clickcast_button` attribute and re-exports it by writing an
+   `export_register` / `export_unregister` attribute, which an insecure
+   `HookScript("OnAttributeChanged")` picks up. That indirection is the whole
+   trick: a snippet running mid-combat cannot call insecure code, so it parks
+   the frame in an attribute and lets the insecure side collect it.
+
+2. **Enable the inputs.** A frame does not report middle-click, buttons 4 and 5,
+   or the wheel unless told to. Every registered frame needs
+   `frame:RegisterForClicks("AnyUp")` and `frame:EnableMouseWheel(true)`. Both
+   are combat-locked, so both go through the queue.
+
+3. **Preserve a pre-existing `ClickCastFrames`.** Another addon may have
+   populated the global before HealMe loads. Capture the old table, install the
+   metatable, then replay every entry through registration. Skipping this loses
+   every frame registered by an addon that loaded first.
+
+4. **Shim the `Clique` global.** Many older frame addons hardcode Clique support
+   rather than using `ClickCastFrames`. Define `Clique = { header = ClickCastHeader }`
+   with a `Clique:UpdateRegisteredClicks(frame)` method forwarding into
+   registration, wrapped in `xpcall` to `geterrorhandler()`.
+
+5. **Refuse to co-exist.** Clique and Clicked both claim the same global header.
+   If either is enabled, show a message and do not install the header. Two
+   addons fighting over `ClickCastHeader` is not a state worth debugging.
 
 ## 12. Mouse wheel
 
-The wheel is not a click, so it cannot be bound by attributes. `Secure` creates
-one hidden `SecureActionButtonTemplate` proxy button carrying the wheel
-bindings' attributes, and registers each frame with a
-`SecureHandlerEnterLeaveTemplate` header:
+The wheel is not a click, so it cannot be bound by attributes. Instead the wheel
+is bound *to* a click on a hidden proxy button, only while the cursor is over a
+registered frame.
 
-- `_onenter` snippet → `self:SetBindingClick(true, "MOUSEWHEELUP", <proxy>, "wheelup")`
-  and the same for `MOUSEWHEELDOWN` / `wheeldown`, plus modifier variants.
-- `_onleave` snippet → `self:ClearBindings()`.
+`Secure` creates one hidden `SecureActionButtonTemplate` **proxy button** that
+carries the wheel bindings' attributes. Because wheel binds resolve through
+`@mouseover` like everything else, this is a *single global button*, not one per
+frame.
+
+Binding and unbinding happen in restricted snippets wrapped onto each frame by
+the header itself — `ClickCastHeader:WrapScript(frame, "OnEnter", setup)` and
+`WrapScript(frame, "OnLeave", clear)`, each preceded by `UnwrapScript` so
+re-registration cannot stack duplicates. `SecureHandlerBaseTemplate` supplies
+`WrapScript`; no separate `SecureHandlerEnterLeaveTemplate` frame is needed.
+
+- **setup** snippet → for each wheel binding,
+  `self:SetBindingClick(true, <keybind>, <proxy>, <identifier>)`, where
+  `<keybind>` is e.g. `MOUSEWHEELUP` or `SHIFT-MOUSEWHEELDOWN` and
+  `<identifier>` is the virtual click name `wheelup` / `wheeldown` that produces
+  the `-wheelup` attribute suffix (§10). Before binding, it clears any bindings
+  left by a previously hovered frame.
+- **clear** snippet → `self:ClearBinding(<keybind>)` for each.
 
 `SetBindingClick` inside a restricted snippet is the only way to bind keys
 during combat; the insecure `SetOverrideBinding*` APIs are blocked in combat.
 
-Because wheel binds resolve through `@mouseover` like everything else, the proxy
-button is a **single global button**, not one per frame.
+**Stale-binding guard.** If the hovered unit stops existing — it dies and the
+frame hides, the raid reshuffles — `OnLeave` may never fire, leaving the wheel
+bound to a heal on nobody. The header registers an attribute driver
+`RegisterAttributeDriver(header, "unit-exists", "[@mouseover,exists] true; false")`
+and an `_onattributechanged` snippet that clears the bindings when the value
+turns `false` and the tracked button is no longer under the mouse or visible.
+Without this the wheel silently misbehaves after a death, which is exactly when
+a healer is least able to diagnose it.
 
 ## 13. Options panel
 
@@ -401,20 +465,32 @@ mid-raid.
   transient to retry against. Combat lockdown is the only "try later" case and
   the queue handles it.
 
-## 16. Things to confirm before writing the relevant code
+## 16. Open questions
 
-These are known unknowns, each attached to the module that depends on it. Each
-is answered by reading a source, not by guessing.
+**Resolved 2026-09-06** (findings folded into the sections above; sources in §20):
 
-1. **Modifier prefix order** in `SecureButton_GetModifierPrefix`, and the button
-   suffix mapping for mouse buttons 4 and 5. Source: `Gethe/wow-ui-source`.
-   Blocks `Compiler.lua`.
-2. **The `ClickCastHeader` snippet protocol** — exact attribute names and
-   snippet bodies. Source: Clique's published source. Blocks `Registry.lua`.
-3. **Whether `mouseover` resolves reliably on every registered frame** (§7).
-   Verified in-game; the per-frame `unit` fallback is already designed.
-4. **Whether a desktop Lua 5.1 interpreter is available** on the dev machine for
+- ~~Modifier prefix order and button suffix mapping~~ → §10. Order is
+  `alt-ctrl-shift-`; wheel suffixes carry a leading hyphen.
+- ~~The `ClickCastHeader` snippet protocol~~ → §11, §12. Also surfaced four
+  requirements the design had missed: `RegisterForClicks`/`EnableMouseWheel`,
+  preserving a pre-existing `ClickCastFrames`, the `Clique` global shim, and the
+  `unit-exists` stale-binding guard.
+- ~~Target client build~~ → 12.1.0.69587, `lastAddonVersion 120100`, read from
+  the local install. `## Interface: 120007, 120100` is correct.
+
+**Still open**, each answered by doing rather than reading:
+
+1. **Whether `mouseover` resolves reliably on every registered frame** (§7).
+   Verified in-game. The per-frame `unit` fallback is already designed, and
+   `Registry` already captures each frame's `unit` attribute for it.
+2. **Whether a desktop Lua 5.1 interpreter is available** on the dev machine for
    the compiler tests. If not, the tests ship anyway and run in CI.
+3. **`RegisterForClicks("AnyUp")` versus `("AnyDown")`** (§11). `AnyUp` is the
+   conservative default: it leaves click-drag behaviour intact. `AnyDown` is
+   more responsive and is what Blizzard moved action buttons to. Shipping
+   `AnyUp`, revisiting after real raid use; it is a one-line profile setting if
+   it turns out to matter.
+4. **The `## Author:` value** (§5). Placeholder pending a name.
 
 ## 17. Testing
 
@@ -482,3 +558,23 @@ Not built now, with a clear seam if ever wanted:
 
 Not built, ever, unless Blizzard reverses course: any condition requiring health
 values, aura state, or combat log data (§3.3).
+
+## 20. Sources
+
+Read directly, not recalled, on 2026-09-06.
+
+- **`Blizzard_FrameXML/SecureTemplates.lua`**, `Gethe/wow-ui-source` @ `live` —
+  `SecureButton_GetModifierPrefix` (lines 70-93), `SecureButton_GetButtonSuffix`
+  (lines 95-117), `SecureButton_GetModifiedUnit` (143+), and the `SECURE_ACTIONS`
+  table (260+) confirming `spell`, `macro`, `target`, `focus`, `togglemenu`, and
+  the `menu` / `menu-function` trap.
+- **`Clicked/UnitFrames/ClickCastHeader.lua`** and
+  **`Clicked/UnitFrames/ClickCastFrames.lua`**, `Snakybo/Clicked` — the
+  `ClickCastHeader` protocol, the `export_register` indirection, `WrapScript`
+  enter/leave wiring, the `unit-exists` attribute driver, the `Clique` global
+  shim, and the combat queues. GPLv3; HealMe matches the protocol's shape as
+  every click-cast addon must, and does not copy its implementation.
+- **Local client** `D:\World of Warcraft\.build.info` — build 12.1.0.69587; and
+  `_retail_\WTF\Config.wtf` — `lastAddonVersion 120100`.
+- **`D:\wow-addons\WOW-ADDON-GUIDE.md`** and the `GuildPlaybook` addon and
+  release workflow in that repo — TOC format, Secret Values, packaging.
