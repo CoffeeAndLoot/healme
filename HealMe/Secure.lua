@@ -23,6 +23,16 @@ local function safecall(func, ...)
     end
 end
 
+-- Renders a Lua array as a comma-separated list of quoted literals, for
+-- interpolation into a restricted-environment snippet.
+local function quoteList(list)
+    local parts = {}
+    for i = 1, #list do
+        parts[i] = string.format("%q", list[i])
+    end
+    return table.concat(parts, ", ")
+end
+
 function Secure:Compile()
     local Compiler = ns.Compiler
     local bindings = ns.Core:Bindings()
@@ -139,6 +149,116 @@ function Secure:Initialize()
         Secure:FlushQueues()
     end)
     self.watcher = watcher
+end
+
+-- The wheel is not a click, so it cannot be bound by attributes. Instead it is
+-- bound to a click on a hidden proxy button, only while the cursor is over a
+-- registered frame. Because every binding resolves through @mouseover, one
+-- global proxy serves every frame.
+function Secure:CreateProxy()
+    if self.proxy then
+        return self.proxy
+    end
+
+    local proxy = CreateFrame("Button", "HealMeWheelProxy", UIParent,
+        "SecureActionButtonTemplate")
+    proxy:Hide()
+    proxy:RegisterForClicks("AnyUp")
+    self.proxy = proxy
+
+    return proxy
+end
+
+local function wheelBindings()
+    local Compiler = ns.Compiler
+    local bindings = ns.Core:Bindings()
+
+    local keybinds, identifiers = {}, {}
+    for i = 1, #bindings do
+        local record = bindings[i]
+        if record.enabled ~= false then
+            local keybind = Compiler.KeybindString(record.key)
+            if keybind then
+                keybinds[#keybinds + 1] = keybind
+                identifiers[#identifiers + 1] = Compiler.ClickIdentifier(record.key)
+            end
+        end
+    end
+
+    return keybinds, identifiers
+end
+
+function Secure:ApplyWheel()
+    if InCombatLockdown() then
+        applyAllQueued = true
+        return
+    end
+
+    local header = ns.Registry.header
+    if not header then
+        return
+    end
+
+    local proxy = self:CreateProxy()
+
+    safecall(function()
+        -- The proxy carries the same attribute set as every frame; only the
+        -- wheel-suffixed entries are ever reached through it.
+        for i = 1, #self.attributes do
+            local attr = self.attributes[i]
+            proxy:SetAttribute(attr.name, attr.value)
+        end
+
+        local keybinds, identifiers = wheelBindings()
+
+        header:SetFrameRef("healme_proxy", proxy)
+        header:Execute(([[
+            proxy = self:GetFrameRef("healme_proxy")
+            keybinds = newtable(%s)
+            identifiers = newtable(%s)
+        ]]):format(quoteList(keybinds), quoteList(identifiers)))
+
+        header:SetAttribute("healme_setup", [[
+            if currentButton ~= nil then
+                control:RunFor(currentButton, control:GetAttribute("healme_clear"))
+            end
+            currentButton = self
+            for i = 1, #keybinds do
+                self:SetBindingClick(true, keybinds[i], proxy, identifiers[i])
+            end
+        ]])
+
+        header:SetAttribute("healme_clear", [[
+            for i = 1, #keybinds do
+                self:ClearBinding(keybinds[i])
+            end
+            currentButton = nil
+        ]])
+
+        -- If the hovered unit stops existing, OnLeave may never fire and the
+        -- wheel stays bound to a heal on nobody. This driver catches that.
+        header:SetAttribute("_onattributechanged", [[
+            if name == "unit-exists" and value == "false" and currentButton ~= nil then
+                if not currentButton:IsUnderMouse() or not currentButton:IsVisible() then
+                    self:RunFor(currentButton, self:GetAttribute("healme_clear"))
+                    currentButton = nil
+                end
+            end
+        ]])
+
+        RegisterAttributeDriver(header, "unit-exists", "[@mouseover,exists] true; false")
+
+        for frame in ns.Registry:IterateFrames() do
+            header:UnwrapScript(frame, "OnEnter")
+            header:UnwrapScript(frame, "OnLeave")
+            header:WrapScript(frame, "OnEnter", [[
+                control:RunFor(self, control:GetAttribute("healme_setup"))
+            ]])
+            header:WrapScript(frame, "OnLeave", [[
+                control:RunFor(self, control:GetAttribute("healme_clear"))
+            ]])
+        end
+    end)
 end
 
 return Secure

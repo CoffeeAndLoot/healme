@@ -83,3 +83,38 @@ steps above:
   effect until combat ends, and it must start working the instant combat
   drops with no `/reload` required. Any Lua error here, or any bind that
   needs a reload to start working, means the queue/flush logic is broken.
+
+## Task 10 — mouse wheel bindings
+
+- [ ] `/healme bind wheelup rejuvenation` prints a confirmation
+- [ ] Hovering a raid frame and scrolling up casts Rejuvenation on that unit
+- [ ] Scrolling up while NOT over a raid frame does its normal thing (scrolls
+      the chat frame, zooms the camera) — the binding must not leak
+- [ ] Move the cursor off the frame and scroll: still no cast
+- [ ] `/healme bind wheeldown regrowth`; both directions work independently
+- [ ] Hover a party member's frame, have them die while you hover, then scroll:
+      no cast, no error (this is the unit-exists guard)
+- [ ] Repeat the whole section in combat on a training dummy
+
+Things this checklist is specifically watching for, beyond the literal
+steps above:
+- A wheel binding that never fires — caught by the wheelup/wheeldown steps
+  actually landing the heal on the hovered unit, not just by the absence of
+  an error. If `SetBindingClick` never ran (header attribute never set, or
+  `WrapScript` never wired up `OnEnter`), scrolling over a frame will simply
+  do nothing.
+- A wheel binding that leaks — caught explicitly by the "scroll while NOT
+  over a raid frame" step and the "move cursor off, then scroll" step. If
+  `OnLeave` never clears the binding (or clears the wrong one because
+  `UnwrapScript` allowed a duplicate handler to stack), the wheel keeps
+  casting after the cursor has left the frame, and normal wheel behavior
+  (camera zoom, chat scroll) stops working — both must be checked, since a
+  leak can present as either "still casts" or "camera stopped zooming."
+- The unit-exists guard failing silently — caught by the death-while-hovering
+  step. If the `_onattributechanged` driver is missing or wired to the wrong
+  attribute name, the frame hides on death without `OnLeave` firing, and the
+  wheel stays bound to a heal on a unit that no longer exists; scrolling
+  afterward should do nothing and must not error.
+- A mid-combat write throwing or tainting the UI — caught by repeating the
+  whole section on a training dummy in combat, same as the click-binding
+  checklist above.
