@@ -9,6 +9,7 @@ ns.Secure = Secure
 local written = {}
 
 local frameQueue = {}
+local unregisterQueue = {}
 local applyAllQueued = false
 
 Secure.attributes = {}
@@ -62,6 +63,30 @@ local function enableInputs(frame)
     end
 end
 
+-- Wires the wheel-proxy setup/clear snippets onto a single frame's OnEnter and
+-- OnLeave. Combat-protected (WrapScript), so callers must hold the same
+-- InCombatLockdown() guard that protects attribute writes. No-ops safely if
+-- the secure header was never created (Registry:Initialize refused to run) or
+-- if wrapping this particular frame fails, so one bad frame cannot block the
+-- rest of a loop.
+function Secure:WrapFrame(frame)
+    local header = ns.Registry.header
+    if not header then
+        return
+    end
+
+    safecall(function()
+        header:UnwrapScript(frame, "OnEnter")
+        header:UnwrapScript(frame, "OnLeave")
+        header:WrapScript(frame, "OnEnter", [[
+            control:RunFor(self, control:GetAttribute("healme_setup"))
+        ]])
+        header:WrapScript(frame, "OnLeave", [[
+            control:RunFor(self, control:GetAttribute("healme_clear"))
+        ]])
+    end)
+end
+
 function Secure:ApplyToFrame(frame)
     if InCombatLockdown() then
         frameQueue[frame] = true
@@ -90,6 +115,37 @@ function Secure:ApplyToFrame(frame)
         for i = 1, #self.attributes do
             local attr = self.attributes[i]
             frame:SetAttribute(attr.name, attr.value)
+        end
+
+        self:WrapFrame(frame)
+    end)
+end
+
+-- Strips a frame of everything HealMe ever wrote to it: every attribute name
+-- ever compiled, and the wheel enter/leave wrappers. Used when a frame is
+-- unregistered, so a unit-frame addon that turns click-casting off for a
+-- frame actually stops it from casting and from hijacking the wheel.
+-- Combat-protected (SetAttribute, UnwrapScript), so it queues under
+-- InCombatLockdown() like every other secure write.
+function Secure:ClearFrame(frame)
+    if InCombatLockdown() then
+        unregisterQueue[frame] = true
+        return
+    end
+
+    if type(frame) ~= "table" or not frame.SetAttribute then
+        return
+    end
+
+    safecall(function()
+        for name in pairs(written) do
+            frame:SetAttribute(name, nil)
+        end
+
+        local header = ns.Registry.header
+        if header then
+            header:UnwrapScript(frame, "OnEnter")
+            header:UnwrapScript(frame, "OnLeave")
         end
     end)
 end
@@ -120,6 +176,15 @@ function Secure:FlushQueues()
         return
     end
 
+    -- Process unregistrations first: a frame queued for both cleanup and
+    -- reapplication (e.g. unregistered then re-registered while in combat)
+    -- should end up wired up, not stripped after the fact.
+    local pendingUnregister = unregisterQueue
+    unregisterQueue = {}
+    for frame in pairs(pendingUnregister) do
+        self:ClearFrame(frame)
+    end
+
     if applyAllQueued then
         applyAllQueued = false
         frameQueue = {}
@@ -141,6 +206,7 @@ function Secure:Initialize()
 
     ns.Registry.onUnregister = function(_, frame)
         frameQueue[frame] = nil
+        Secure:ClearFrame(frame)
     end
 
     local watcher = CreateFrame("Frame")
@@ -249,14 +315,7 @@ function Secure:ApplyWheel()
         RegisterAttributeDriver(header, "unit-exists", "[@mouseover,exists] true; false")
 
         for frame in ns.Registry:IterateFrames() do
-            header:UnwrapScript(frame, "OnEnter")
-            header:UnwrapScript(frame, "OnLeave")
-            header:WrapScript(frame, "OnEnter", [[
-                control:RunFor(self, control:GetAttribute("healme_setup"))
-            ]])
-            header:WrapScript(frame, "OnLeave", [[
-                control:RunFor(self, control:GetAttribute("healme_clear"))
-            ]])
+            self:WrapFrame(frame)
         end
     end)
 end

@@ -176,12 +176,22 @@ local function buildOptions()
                     add = {
                         type = "execute",
                         name = "New binding",
+                        desc = "Adds a binding starting disabled, so an "
+                            .. "unfinished row can never clobber an existing "
+                            .. "bind. Set a spell and tick Enabled when ready.",
                         order = 2,
                         func = function()
                             local list = bindings()
+                            -- Starts disabled and bypasses commit() on purpose:
+                            -- an empty spell would fail Validate, and this
+                            -- record has not been assigned a button the user
+                            -- chose yet, so it must never compile until the
+                            -- user finishes it and flips Enabled (which does
+                            -- go through commit, and therefore Validate and
+                            -- FindConflict).
                             local record = {
                                 id = ns.Bindings.NextId(list),
-                                enabled = true,
+                                enabled = false,
                                 key = { button = "BUTTON1" },
                                 action = { kind = "spell", spell = "" },
                             }

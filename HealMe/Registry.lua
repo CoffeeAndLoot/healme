@@ -4,7 +4,9 @@ ns = ns or {}
 local Registry = {}
 ns.Registry = Registry
 
-local frames = {}
+-- Weak-keyed so a frame addon's teardown does not leak (design spec §15): a
+-- discarded frame can be collected instead of staying registered forever.
+local frames = setmetatable({}, { __mode = "k" })
 
 local function errorhandler(err)
     return geterrorhandler()(err)

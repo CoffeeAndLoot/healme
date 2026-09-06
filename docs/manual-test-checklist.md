@@ -124,6 +124,10 @@ steps above:
 - [ ] `/healme` with no arguments opens the panel
 - [ ] The panel also appears under Escape -> Options -> AddOns -> HealMe
 - [ ] "New binding" adds a row; selecting it shows the editor
+- [ ] Create a new binding and confirm it appears marked "(disabled)" in the
+      list and does not affect BUTTON1 (its default button) or any existing
+      binding on that button. Then set a spell, tick Enabled, and confirm it
+      starts working
 - [ ] Setting button and spell produces a working click-cast without a reload
 - [ ] Typing a nonexistent spell prints "rejected: no such spell: ..." and the
       field reverts
