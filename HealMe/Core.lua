@@ -49,7 +49,12 @@ end
 function Core:OnEnable()
     self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged")
     self:OnSpecChanged(nil, "player")
+
     self.registryActive = ns.Registry:Initialize()
+    if self.registryActive then
+        ns.Secure:Initialize()
+        ns.Secure:ApplyAll()
+    end
 end
 
 function Core:OnSpecChanged(_, unit)
@@ -123,7 +128,44 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    self:Print("usage: /healme [status]")
+    -- Temporary command surface for creating test bindings before the options
+    -- panel exists (Task 11). Remove once Options.lua lands.
+    local button, spell = input:match("^bind (%S+) (.+)$")
+    if button then
+        local record = {
+            id = ns.Bindings.NextId(self:Bindings()),
+            enabled = true,
+            key = { button = button:upper() },
+            action = { kind = "spell", spell = spell },
+        }
+        local ok, err = ns.Bindings.Validate(record, self:ValidationDeps())
+        if not ok then
+            self:Print("rejected: " .. err)
+            return
+        end
+        local clash = ns.Bindings.FindConflict(self:Bindings(), record)
+        if clash then
+            self:Print("that combination is already bound")
+            return
+        end
+        local list = self:Bindings()
+        list[#list + 1] = record
+        self:NotifyChanged()
+        self:Print("bound " .. record.key.button .. " to " .. spell)
+        return
+    end
+
+    if input == "clear" then
+        local list = self:Bindings()
+        for i = #list, 1, -1 do
+            list[i] = nil
+        end
+        self:NotifyChanged()
+        self:Print("cleared all bindings")
+        return
+    end
+
+    self:Print("usage: /healme [status | bind <button> <spell> | clear]")
 end
 
 function HealMe_OnAddonCompartmentClick()

@@ -21,4 +21,5 @@ Libs\LibDeflate\LibDeflate.lua
 Compiler.lua
 Bindings.lua
 Registry.lua
+Secure.lua
 Core.lua
