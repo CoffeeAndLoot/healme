@@ -5,7 +5,7 @@ globals = {
     -- Written by this addon
     "HealMeDB", "HealMe_OnAddonCompartmentClick",
     "SLASH_HEALME1", "SLASH_HEALME2",
-    "ClickCastFrames", "ClickCastHeader", "Clique",
+    "ClickCastFrames", "ClickCastHeader", "Clique", "HealMeNS",
 }
 read_globals = {
     "SlashCmdList", "CreateFrame", "UIParent", "print", "geterrorhandler",

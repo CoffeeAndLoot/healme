@@ -20,3 +20,19 @@ Setup: `/console scriptErrors 1`, and install BugSack + BugGrabber.
 - [ ] Switch specialisation; `/healme status` reports the other spec's profile
 - [ ] Switch back; the original profile returns
 - [ ] Log out and back in; the profile is remembered
+
+## Task 8 — frame registration
+
+- [ ] `/reload` in a raid or party produces no Lua errors
+- [ ] `/dump ClickCastHeader ~= nil` prints true
+- [ ] `/dump Clique.header ~= nil` prints true
+- [ ] `/run local n=0 for f in HealMeNS.Registry:IterateFrames() do n=n+1 end print(n)`
+      prints a count greater than zero, and larger in a raid than solo
+- [ ] Enable Clique or Clicked, reload: HealMe prints the conflict message and
+      does not install the header
+
+In-game, solo: `/reload`, then run each `/dump` and `/run` above.
+Expected: `true`, `true`, and a frame count of at least 4 (player, target,
+focus, pet frames exist even solo; target/focus frames register regardless of
+whether a unit is selected). Join a 5-player group and re-run: the count must
+rise.

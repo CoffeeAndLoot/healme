@@ -20,4 +20,5 @@ Libs\LibDeflate\LibDeflate.lua
 
 Compiler.lua
 Bindings.lua
+Registry.lua
 Core.lua

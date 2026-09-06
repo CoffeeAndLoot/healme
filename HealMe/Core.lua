@@ -49,6 +49,7 @@ end
 function Core:OnEnable()
     self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged")
     self:OnSpecChanged(nil, "player")
+    self.registryActive = ns.Registry:Initialize()
 end
 
 function Core:OnSpecChanged(_, unit)
@@ -128,5 +129,8 @@ end
 function HealMe_OnAddonCompartmentClick()
     Core:OnSlashCommand("")
 end
+
+-- Exposed so in-game checks can reach the modules. Not part of any API.
+HealMeNS = ns
 
 return Core
