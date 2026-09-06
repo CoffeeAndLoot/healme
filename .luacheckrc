@@ -1,0 +1,15 @@
+std = "lua51"
+max_line_length = 120
+exclude_files = { "HealMe/Libs" }
+globals = {
+    -- Written by this addon
+    "HealMeDB", "HealMe_OnAddonCompartmentClick",
+    "SLASH_HEALME1", "SLASH_HEALME2",
+    "ClickCastFrames", "ClickCastHeader", "Clique",
+}
+read_globals = {
+    "SlashCmdList", "CreateFrame", "UIParent", "print", "geterrorhandler",
+    "InCombatLockdown", "RegisterAttributeDriver", "UnitName",
+    "GetSpecialization", "GetSpecializationInfo",
+    "C_Spell", "C_AddOns", "C_Timer", "LibStub",
+}

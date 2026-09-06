@@ -1,0 +1,6 @@
+{
+  "runtime.version": "Lua 5.1",
+  "workspace.library": ["${3rd}/love2d/library"],
+  "diagnostics.globals": ["HealMeDB", "ClickCastFrames", "ClickCastHeader", "Clique"],
+  "workspace.ignoreDir": ["HealMe/Libs"]
+}

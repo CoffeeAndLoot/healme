@@ -1,0 +1,12 @@
+## Interface: 120007, 120100
+## Title: HealMe
+## Notes: Mouse click-casting for healers.
+## Author: CoffeeAndLoot
+## Version: 0.1.0
+## SavedVariables: HealMeDB
+## AddonCompartmentFunc: HealMe_OnAddonCompartmentClick
+
+Compiler.lua
+Bindings.lua
+Serialize.lua
+Core.lua
