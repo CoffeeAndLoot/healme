@@ -222,8 +222,9 @@ local function buildOptions()
                                     return r.enabled ~= false
                                 end),
                                 set = withSelected(function(r, _, value)
+                                    local previous = r.enabled
                                     r.enabled = value
-                                    ns.Core:NotifyChanged()
+                                    if not commit(r) then r.enabled = previous end
                                 end),
                             },
 
@@ -277,11 +278,16 @@ local function buildOptions()
                                 values = KIND_LABEL,
                                 get = withSelected(function(r) return r.action.kind end),
                                 set = withSelected(function(r, _, value)
+                                    local previousKind = r.action.kind
+                                    local previousConditions = r.conditions
                                     r.action.kind = value
                                     if value == "togglemenu" then
                                         r.conditions = nil
                                     end
-                                    commit(r)
+                                    if not commit(r) then
+                                        r.action.kind = previousKind
+                                        r.conditions = previousConditions
+                                    end
                                 end),
                             },
 

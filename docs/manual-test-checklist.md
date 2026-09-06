@@ -134,3 +134,10 @@ steps above:
       heal click also switches your target
 - [ ] The Profiles tab lists the spec profiles and can copy between them
 - [ ] Deleting a binding asks for confirmation and stops the bind firing
+- [ ] Create a spell binding, then change its Action to "Run a macro" without
+      entering macro text. Expect a rejection message AND the Action dropdown
+      to snap back to "Cast a spell". If the dropdown stays on "Run a macro",
+      the revert is broken.
+- [ ] Create two bindings on the same button and modifiers, disable one, then
+      re-enable it. Expect the conflict message and the binding to stay
+      disabled.

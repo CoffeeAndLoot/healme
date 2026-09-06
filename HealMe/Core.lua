@@ -130,8 +130,8 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    -- Temporary command surface for creating test bindings before the options
-    -- panel exists (Task 11). Remove once Options.lua lands.
+    -- Temporary command surface for creating test bindings. Options.lua now
+    -- exists but these stay until the panel is proven in-game.
     local button, spell = input:match("^bind (%S+) (.+)$")
     if button then
         local record = {
