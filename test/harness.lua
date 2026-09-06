@@ -53,7 +53,7 @@ function harness.attrsEq(actual, expected, label)
     local seen = {}
     for i = 1, #actual do
         local entry = actual[i]
-        if seen[entry.name] then
+        if seen[entry.name] ~= nil then
             error((label or "attrs") .. ": duplicate attribute " .. tostring(entry.name), 2)
         end
         seen[entry.name] = entry.value
