@@ -22,4 +22,5 @@ Compiler.lua
 Bindings.lua
 Registry.lua
 Secure.lua
+Options.lua
 Core.lua

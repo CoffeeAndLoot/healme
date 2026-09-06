@@ -55,6 +55,8 @@ function Core:OnEnable()
         ns.Secure:Initialize()
         ns.Secure:ApplyAll()
     end
+
+    ns.Options:Initialize()
 end
 
 function Core:OnSpecChanged(_, unit)

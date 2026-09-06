@@ -118,3 +118,19 @@ steps above:
 - A mid-combat write throwing or tainting the UI — caught by repeating the
   whole section on a training dummy in combat, same as the click-binding
   checklist above.
+
+## Task 11 — options panel
+
+- [ ] `/healme` with no arguments opens the panel
+- [ ] The panel also appears under Escape -> Options -> AddOns -> HealMe
+- [ ] "New binding" adds a row; selecting it shows the editor
+- [ ] Setting button and spell produces a working click-cast without a reload
+- [ ] Typing a nonexistent spell prints "rejected: no such spell: ..." and the
+      field reverts
+- [ ] Creating a second binding on the same button+modifiers prints
+      "that combination is already used by: ..." and reverts
+- [ ] Choosing "Open unit menu" hides the conditions group
+- [ ] The "Also target" toggle changes behaviour immediately: with it on, a
+      heal click also switches your target
+- [ ] The Profiles tab lists the spec profiles and can copy between them
+- [ ] Deleting a binding asks for confirmation and stops the bind firing
