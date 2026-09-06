@@ -7,4 +7,5 @@
 ## AddonCompartmentFunc: HealMe_OnAddonCompartmentClick
 
 Compiler.lua
+Bindings.lua
 Core.lua
