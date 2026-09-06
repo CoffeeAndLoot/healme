@@ -23,4 +23,5 @@ Bindings.lua
 Registry.lua
 Secure.lua
 Options.lua
+Serialize.lua
 Core.lua

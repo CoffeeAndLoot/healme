@@ -141,3 +141,13 @@ steps above:
 - [ ] Create two bindings on the same button and modifiers, disable one, then
       re-enable it. Expect the conflict message and the binding to stay
       disabled.
+
+## Task 12 — export and import
+
+- [ ] The Share tab shows a string beginning "!HM1!"
+- [ ] Copy it, switch to another profile, paste into Import: the bindings appear
+      and immediately work
+- [ ] Pasting rubbish prints "import failed: that does not look like a HealMe
+      binding string"
+- [ ] Truncating a valid string by a few characters prints "import failed: the
+      binding string is damaged or incomplete" rather than erroring

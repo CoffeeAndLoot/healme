@@ -42,6 +42,26 @@ function Core:OnInitialize()
     self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
     self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
 
+    local AceSerializer = LibStub("AceSerializer-3.0")
+    local LibDeflate = LibStub("LibDeflate")
+
+    ns.Serialize.codec = {
+        encode = function(value)
+            local serialized = AceSerializer:Serialize(value)
+            local compressed = LibDeflate:CompressDeflate(serialized)
+            return LibDeflate:EncodeForPrint(compressed)
+        end,
+        decode = function(text)
+            local compressed = LibDeflate:DecodeForPrint(text)
+            if not compressed then return nil end
+            local serialized = LibDeflate:DecompressDeflate(compressed)
+            if not serialized then return nil end
+            local ok, value = AceSerializer:Deserialize(serialized)
+            if not ok then return nil end
+            return value
+        end,
+    }
+
     self:RegisterChatCommand("healme", "OnSlashCommand")
     self:RegisterChatCommand("hm", "OnSlashCommand")
 end

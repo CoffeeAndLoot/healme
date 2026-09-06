@@ -414,6 +414,53 @@ local function buildOptions()
                 },
             },
 
+            share = {
+                type = "group",
+                name = "Share",
+                order = 3,
+                args = {
+                    export = {
+                        type = "input",
+                        name = "Export",
+                        desc = "Select all and copy.",
+                        multiline = 8,
+                        width = "full",
+                        order = 1,
+                        get = function()
+                            return ns.Serialize.Export({
+                                bindings = ns.Core:Bindings(),
+                                settings = ns.Core:Settings(),
+                            }, ns.Serialize.codec)
+                        end,
+                        set = function() end,
+                    },
+                    import = {
+                        type = "input",
+                        name = "Import",
+                        desc = "Paste a binding string. This replaces every "
+                            .. "binding in the current profile.",
+                        multiline = 8,
+                        width = "full",
+                        order = 2,
+                        get = function() return "" end,
+                        set = function(_, value)
+                            local profile, err =
+                                ns.Serialize.Import(value, ns.Serialize.codec)
+                            if not profile then
+                                ns.Core:Print("import failed: " .. err)
+                                return
+                            end
+                            ns.Core.db.profile.bindings = profile.bindings
+                            ns.Core.db.profile.settings.alsoTarget =
+                                profile.settings.alsoTarget and true or false
+                            ns.Core:NotifyChanged()
+                            ns.Core:Print("imported "
+                                .. #profile.bindings .. " bindings")
+                        end,
+                    },
+                },
+            },
+
             profiles = AceDBOptions:GetOptionsTable(ns.Core.db),
         },
     }
