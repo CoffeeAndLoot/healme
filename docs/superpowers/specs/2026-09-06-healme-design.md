@@ -87,6 +87,8 @@ Consequences for HealMe:
   macro.
 - Macro-expressible conditions: friendly, hostile, dead, alive, in combat, out
   of combat.
+- An **"also target"** setting: when a bind casts, the player's target switches
+  to the clicked unit as well, so action-bar follow-ups land on the same person.
 - Binding sets that swap automatically with specialization.
 - Blizzard party/raid/player/target/focus frames, plus any addon frame that
   registers through the community `ClickCastFrames` protocol.
@@ -233,6 +235,19 @@ A binding record, stored in AceDB under the active profile:
 }
 ```
 
+Profile-level settings, stored alongside the binding list:
+
+```lua
+settings = {
+  alsoTarget = false,   -- see §10; default off, one click to flip
+}
+```
+
+`alsoTarget` is a profile setting rather than a per-binding field. It is the
+kind of thing a player wants on or off as a habit, not per bind, and keeping it
+out of the record means the binding list stays readable. §19 records the seam if
+per-binding control is ever wanted.
+
 Validation rules enforced by `Bindings.lua` before a record is accepted:
 
 - `aliveOnly` and `deadOnly` are mutually exclusive.
@@ -257,9 +272,9 @@ order — believed to be `alt-`, `ctrl-`, `shift-`, **to be confirmed against
 **Attribute values**, by action kind:
 
 - No conditions, `kind == "spell"` → `type=spell`, `spell=<name>`,
-  `unit=mouseover`. Preferred over macro text where possible: the frame renders
-  cooldown and range feedback for a spell attribute, and error reporting is
-  better.
+  `unit=mouseover`. Preferred over macro text where possible: no 255-character
+  ceiling, marginally cheaper at click time, and Blizzard's native spell-error
+  handling applies.
 - Conditions present, `kind == "spell"` → `type=macro`,
   `macrotext=/cast [@mouseover,<conds>] <spell>`.
 - `kind == "macro"` → `type=macro`, `macrotext=<author's text>` verbatim.
@@ -267,6 +282,32 @@ order — believed to be `alt-`, `ctrl-`, `shift-`, **to be confirmed against
 - `kind == "target" | "focus" | "menu"` → `type=<kind>`, `unit=mouseover`.
   Conditions, if any, wrap it as `type=macro` with
   `/target [@mouseover,<conds>]` and equivalents.
+
+**"Also target."** When the profile setting `alsoTarget` is on, a binding of
+kind `spell` compiles to `type=macro` regardless of whether it carries
+conditions, with a target line appended:
+
+```
+/cast [@mouseover,help,nodead] Regrowth
+/target [@mouseover,help,nodead]
+```
+
+Rules:
+
+- **Cast line first.** If the target line ever fails, the heal has already gone
+  out. The reverse order risks retargeting without healing.
+- **The same conditions guard both lines**, so a bind that declines to fire also
+  declines to retarget. Compiling the condition string once and emitting it
+  twice keeps that guaranteed rather than merely intended.
+- **`kind == "macro"` is exempt.** The author's macro text is theirs; if they
+  want a `/target` line they write one. HealMe does not rewrite author macros
+  (consistent with the rule above).
+- **`kind == "target" | "focus" | "menu"` are unaffected.** `target` already
+  targets, and silently retargeting off a focus or a context-menu click would be
+  a surprise.
+
+The only cost is that affected binds lose the `type=spell` path and its modest
+advantages listed above. That is why the setting defaults off.
 
 **Condition ordering** is fixed — `unitFilter`, then `nodead`/`dead`, then
 `combat`/`nocombat` — so that identical bindings always compile to
@@ -321,6 +362,9 @@ compartment and from `/healme`.
 
 Contents:
 
+- An **"Also target"** checkbox (§10): when a bind casts, switch your target to
+  the clicked unit so action-bar follow-ups land on the same person. Applies to
+  the whole profile.
 - A list of bindings in the active profile, each row showing its combo, its
   action, and its conditions.
 - An editor for the selected binding: action kind, spell picker or macro text
@@ -383,6 +427,9 @@ framework dependency):
 
 - `Compiler.Compile` output for every action kind, every condition combination,
   and every modifier permutation, asserted as exact attribute name/value pairs.
+- `alsoTarget` on and off across all five action kinds: that `spell` gains the
+  target line with identical conditions on both lines and the cast line first,
+  and that `macro`, `target`, `focus`, and `menu` are left untouched.
 - `Bindings` validation rules: mutual exclusion, duplicate key detection, macro
   length, spell validation via an injected stub.
 - Round-trip: `Serialize.Export(profile)` → `Import` → identical table.
@@ -396,6 +443,8 @@ framework dependency):
 - Wheel binds fire while hovering and do not leak outside the frame.
 - Conditional binds: a friendly-only bind does nothing on a hostile target, and
   a `nodead` bind does nothing on a corpse.
+- With "also target" on: a heal click both lands and switches the target, in
+  combat and out; a bind whose conditions fail changes neither.
 - Force each restriction scope with the `secret*RestrictionsForced` CVars and
   confirm no errors, including on the addon-author test dummies near The
   MOTHERLODE!! entrance.
@@ -426,6 +475,10 @@ Not built now, with a clear seam if ever wanted:
 - A HealMe-drawn healing grid. It would consume `Secure` exactly as Blizzard's
   frames do, via `ClickCastFrames`.
 - Blizzard-keybind-style bindings that fire without a frame under the cursor.
+- Per-binding control of "also target" (§10). The record would gain an
+  `alsoTarget` tri-state — inherit / on / off — and the compiler would read the
+  effective value instead of the profile setting. One field and one line;
+  nothing else moves.
 
 Not built, ever, unless Blizzard reverses course: any condition requiring health
 values, aura state, or combat log data (§3.3).
