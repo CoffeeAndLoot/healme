@@ -1,0 +1,71 @@
+local _, ns = ...
+ns = ns or {}
+
+local Compiler = {}
+ns.Compiler = Compiler
+
+-- Blizzard's SecureButton_GetModifierPrefix builds its prefix by prepending
+-- shift, then ctrl, then alt, so the resulting string is always in alt, ctrl,
+-- shift order. Emitting any other order silently fails to match.
+local MODIFIER_ORDER = { "alt", "ctrl", "shift" }
+
+-- SecureButton_GetButtonSuffix maps Left/Right/Middle to 1/2/3 and Button4..31
+-- to their number. Anything else falls through to `return "-" .. button`, which
+-- is why the wheel suffixes carry a leading hyphen.
+local BUTTON_SUFFIX = {
+    BUTTON1   = "1",
+    BUTTON2   = "2",
+    BUTTON3   = "3",
+    BUTTON4   = "4",
+    BUTTON5   = "5",
+    WHEELUP   = "-wheelup",
+    WHEELDOWN = "-wheeldown",
+}
+
+local WHEEL_KEY = {
+    WHEELUP   = { keybind = "MOUSEWHEELUP",   identifier = "wheelup" },
+    WHEELDOWN = { keybind = "MOUSEWHEELDOWN", identifier = "wheeldown" },
+}
+
+Compiler.BUTTONS = {
+    "BUTTON1", "BUTTON2", "BUTTON3", "BUTTON4", "BUTTON5",
+    "WHEELUP", "WHEELDOWN",
+}
+
+function Compiler.IsValidButton(button)
+    return BUTTON_SUFFIX[button] ~= nil
+end
+
+local function modifierPrefix(key, separator, upper)
+    local prefix = ""
+    for i = 1, #MODIFIER_ORDER do
+        local mod = MODIFIER_ORDER[i]
+        if key[mod] then
+            prefix = prefix .. (upper and mod:upper() or mod) .. separator
+        end
+    end
+    return prefix
+end
+
+function Compiler.AttributeName(name, key)
+    local suffix = BUTTON_SUFFIX[key.button]
+    if not suffix then
+        return nil
+    end
+    return modifierPrefix(key, "-", false) .. name .. suffix
+end
+
+function Compiler.KeybindString(key)
+    local wheel = WHEEL_KEY[key.button]
+    if not wheel then
+        return nil
+    end
+    return modifierPrefix(key, "-", true) .. wheel.keybind
+end
+
+function Compiler.ClickIdentifier(key)
+    local wheel = WHEEL_KEY[key.button]
+    return wheel and wheel.identifier or nil
+end
+
+return Compiler

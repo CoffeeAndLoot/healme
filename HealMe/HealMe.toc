@@ -6,4 +6,5 @@
 ## SavedVariables: HealMeDB
 ## AddonCompartmentFunc: HealMe_OnAddonCompartmentClick
 
+Compiler.lua
 Core.lua
