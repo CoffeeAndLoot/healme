@@ -134,4 +134,39 @@ function Bindings.NextId(list)
     return "b" .. n
 end
 
+-- Filters and repairs a list of binding records, e.g. one just imported from
+-- a shared string. Validate alone cannot catch duplicate keys or duplicate
+-- ids across the whole set, so this builds a fresh, safe list rather than
+-- mutating the input.
+function Bindings.Sanitize(records, deps)
+    local accepted = {}
+    local skipped = 0
+    local usedKeys = {}
+
+    for i = 1, #records do
+        local record = records[i]
+        local ok = Bindings.Validate(record, deps)
+        if ok then
+            local signature = Bindings.KeySignature(record.key)
+            if signature and usedKeys[signature] then
+                skipped = skipped + 1
+            else
+                if signature then
+                    usedKeys[signature] = true
+                end
+                local copy = {}
+                for k, v in pairs(record) do
+                    copy[k] = v
+                end
+                copy.id = "b" .. #accepted + 1
+                accepted[#accepted + 1] = copy
+            end
+        else
+            skipped = skipped + 1
+        end
+    end
+
+    return accepted, skipped
+end
+
 return Bindings

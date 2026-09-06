@@ -151,3 +151,7 @@ steps above:
       binding string"
 - [ ] Truncating a valid string by a few characters prints "import failed: the
       binding string is damaged or incomplete" rather than erroring
+- [ ] Import a string that contains a deliberately broken binding (e.g. an
+      unknown button or a duplicate key): confirm the skipped count appears in
+      the message ("imported N bindings (M skipped: invalid or duplicate)")
+      and the broken binding does not show up in the list

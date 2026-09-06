@@ -133,6 +133,70 @@ return function(h, m)
         end)
     end)
 
+    h.describe("Bindings.Sanitize", function()
+        h.it("passes a clean set through unchanged in order", function()
+            local input = {
+                record({ id = "x1", key = { button = "BUTTON1" } }),
+                record({ id = "x2", key = { button = "BUTTON2" } }),
+            }
+            local accepted, skipped = Bindings.Sanitize(input, deps)
+            h.eq(#accepted, 2)
+            h.eq(skipped, 0)
+            h.eq(accepted[1].key.button, "BUTTON1")
+            h.eq(accepted[2].key.button, "BUTTON2")
+        end)
+
+        h.it("drops an invalid record and counts it", function()
+            local input = {
+                record({ id = "x1", key = { button = "BUTTON1" } }),
+                record({ id = "x2", key = { button = "BUTTON9" } }),
+            }
+            local accepted, skipped = Bindings.Sanitize(input, deps)
+            h.eq(#accepted, 1)
+            h.eq(skipped, 1)
+            h.eq(accepted[1].key.button, "BUTTON1")
+        end)
+
+        h.it("keeps only the first of two records on the same key", function()
+            local input = {
+                record({ id = "x1", key = { button = "BUTTON1" }, action = { kind = "spell", spell = "Rejuvenation" } }),
+                record({ id = "x2", key = { button = "BUTTON1" }, action = { kind = "spell", spell = "Regrowth" } }),
+            }
+            local accepted, skipped = Bindings.Sanitize(input, deps)
+            h.eq(#accepted, 1)
+            h.eq(skipped, 1)
+            h.eq(accepted[1].action.spell, "Rejuvenation")
+        end)
+
+        h.it("reassigns duplicate incoming ids to be unique", function()
+            local input = {
+                record({ id = "b1", key = { button = "BUTTON1" } }),
+                record({ id = "b1", key = { button = "BUTTON2" } }),
+            }
+            local accepted = Bindings.Sanitize(input, deps)
+            h.eq(accepted[1].id, "b1")
+            h.eq(accepted[2].id, "b2")
+        end)
+
+        h.it("returns an empty array and zero skipped for empty input", function()
+            local accepted, skipped = Bindings.Sanitize({}, deps)
+            h.eq(#accepted, 0)
+            h.eq(skipped, 0)
+        end)
+
+        h.it("does not mutate the input array", function()
+            local input = {
+                record({ id = "b1", key = { button = "BUTTON1" } }),
+                record({ id = "b1", key = { button = "BUTTON2" } }),
+            }
+            local firstIdBefore = input[1].id
+            local secondIdBefore = input[2].id
+            Bindings.Sanitize(input, deps)
+            h.eq(input[1].id, firstIdBefore)
+            h.eq(input[2].id, secondIdBefore)
+        end)
+    end)
+
     h.describe("Bindings.KeySignature and Compiler.BUTTONS consistency", function()
         -- Bindings keeps its own copy of the valid-button list rather than
         -- reading from Compiler, because on the desktop test runner each module

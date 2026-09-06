@@ -450,12 +450,18 @@ local function buildOptions()
                                 ns.Core:Print("import failed: " .. err)
                                 return
                             end
-                            ns.Core.db.profile.bindings = profile.bindings
+                            local accepted, skipped = ns.Bindings.Sanitize(
+                                profile.bindings, ns.Core:ValidationDeps())
+                            ns.Core.db.profile.bindings = accepted
                             ns.Core.db.profile.settings.alsoTarget =
                                 profile.settings.alsoTarget and true or false
                             ns.Core:NotifyChanged()
-                            ns.Core:Print("imported "
-                                .. #profile.bindings .. " bindings")
+                            local message = "imported " .. #accepted .. " bindings"
+                            if skipped > 0 then
+                                message = message .. " (" .. skipped
+                                    .. " skipped: invalid or duplicate)"
+                            end
+                            ns.Core:Print(message)
                         end,
                     },
                 },
