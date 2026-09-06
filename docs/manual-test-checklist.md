@@ -156,6 +156,64 @@ steps above:
       the message ("imported N bindings (M skipped: invalid or duplicate)")
       and the broken binding does not show up in the list
 
+## Conditional bindings
+
+`Compiler`'s unit tests prove the right macro TEXT is produced for each
+condition; they cannot prove Blizzard's own macro engine honours that text
+at click time. This section is the only place that gets checked. Requires
+a healing spec, a friendly party member (or NPC) alive and reachable, a
+hostile target, and a way to see a corpse (a dead party member, or your own
+corpse after a training-dummy death).
+
+Before starting: confirm the spell used at each step is known and the test
+target is in range. A bind that does nothing because the target is out of
+range or the spell is on cooldown looks identical to a condition correctly
+declining — do not mistake one for the other. If a step ever seems to fail,
+first retest on an in-range target with the spell off cooldown before
+concluding the condition is broken.
+
+- [ ] Bind a friendly-only (`help`) heal. Cast on a party member: it fires.
+      Click a hostile target with the same bind: nothing is cast, no error.
+- [ ] Bind a hostile-only (`harm`) spell. Click a hostile target: it fires.
+      Click a friendly target: nothing is cast, no error.
+- [ ] Bind an alive-only (`nodead`) heal. Cast on a living party member: it
+      fires. Click a corpse with the same bind: nothing is cast, no error.
+- [ ] Bind a dead-only (`dead`) resurrection spell. Click a living party
+      member: nothing is cast, no error. Click a corpse: it fires.
+- [ ] Bind an out-of-combat (`nocombat`) spell. Out of combat, it fires.
+      Enter combat (pull a training dummy) and click again: nothing is
+      cast, no error. Leave combat and click again, with no `/reload`: it
+      fires again immediately.
+- [ ] Bind a spell with two conditions at once (e.g. friendly AND alive).
+      Confirm both are required by testing a case that satisfies only one
+      — a hostile living target, and a friendly corpse — and confirming
+      neither casts. Then confirm a friendly, living target does cast.
+- [ ] Enable "Also target", then bind a conditional heal (e.g. friendly-only)
+      to a button. Click a target for which the condition fails (a hostile
+      unit): confirm BOTH that nothing is cast AND that your target does
+      not change. This is the guarantee that the cast and the target-switch
+      share one condition clause; if the target line were evaluated on its
+      own, a declined heal could still retarget you.
+
+Things this section is specifically watching for, beyond the literal steps
+above:
+- A condition that is silently ignored, so the spell fires on every unit
+  regardless of the clause — caught only by the negative half of each step
+  above (the click that should do nothing). A step that only checks the
+  positive case would pass even if `Compiler` emitted no condition at all.
+- A condition that inverts (fires exactly when it should not) — also only
+  caught by pairing the positive and negative checks on the same bind.
+- The `nocombat` transition specifically: a bind that requires a `/reload`
+  to start working again after combat ends means the condition was baked
+  into a stale macro rather than re-evaluated live, which defeats the
+  point of a secure conditional macro.
+- A combined-condition bind that fires when only one of the two conditions
+  holds — caught by testing both partially-satisfying cases, not just the
+  fully-satisfying one.
+- "Also target" leaking past a failed condition — caught explicitly by the
+  last step. A retarget on a declined heal is worse than a silent no-op:
+  it changes your target without you asking for it, mid-fight.
+
 ## Release checklist
 
 Run this section last, after every task section above has passed, before
