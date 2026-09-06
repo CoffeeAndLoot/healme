@@ -223,4 +223,70 @@ return function(h, m)
             h.eq(#Compiler.Compile(binding({ key = { button = "BUTTON9" } }), {}), 0)
         end)
     end)
+
+    h.describe("Compiler.Compile with alsoTarget", function()
+        local on = { alsoTarget = true }
+
+        h.it("appends a target line to an unconditional spell bind", function()
+            h.attrsEq(Compiler.Compile(binding(), on), {
+                ["shift-type2"]      = "macro",
+                ["shift-macrotext2"] = "/cast [@mouseover] Rejuvenation\n"
+                                    .. "/target [@mouseover]",
+            })
+        end)
+
+        -- Cast first: if the target line ever fails, the heal has already gone
+        -- out. Both lines carry the same conditions, so a bind that declines to
+        -- fire also declines to retarget.
+        h.it("shares one condition string across both lines, cast first", function()
+            h.attrsEq(Compiler.Compile(binding({
+                conditions = { unitFilter = "help", aliveOnly = true },
+            }), on), {
+                ["shift-type2"]      = "macro",
+                ["shift-macrotext2"] = "/cast [@mouseover,help,nodead] Rejuvenation\n"
+                                    .. "/target [@mouseover,help,nodead]",
+            })
+        end)
+
+        h.it("leaves author macros alone", function()
+            h.attrsEq(Compiler.Compile(binding({
+                action = { kind = "macro", macrotext = "/cast [@mouseover] Swiftmend" },
+            }), on), {
+                ["shift-type2"]      = "macro",
+                ["shift-macrotext2"] = "/cast [@mouseover] Swiftmend",
+            })
+        end)
+
+        h.it("leaves target, focus and togglemenu alone", function()
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "target" },
+            }), on), {
+                ["type1"] = "target",
+                ["unit1"] = "mouseover",
+            })
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "focus" },
+            }), on), {
+                ["type1"] = "focus",
+                ["unit1"] = "mouseover",
+            })
+            h.attrsEq(Compiler.Compile(binding({
+                key = { button = "BUTTON1" },
+                action = { kind = "togglemenu" },
+            }), on), {
+                ["type1"] = "togglemenu",
+                ["unit1"] = "mouseover",
+            })
+        end)
+
+        h.it("changes nothing when the setting is off", function()
+            h.attrsEq(Compiler.Compile(binding(), { alsoTarget = false }), {
+                ["shift-type2"]  = "spell",
+                ["shift-spell2"] = "Rejuvenation",
+                ["shift-unit2"]  = "mouseover",
+            })
+        end)
+    end)
 end

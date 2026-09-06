@@ -143,9 +143,13 @@ function Compiler.Compile(binding, settings)
     local clause = Compiler.UnitClause(binding.conditions)
 
     if kind == "spell" then
-        if conds then
+        if conds or settings.alsoTarget then
+            local lines = { "/cast " .. clause .. " " .. action.spell }
+            if settings.alsoTarget then
+                lines[#lines + 1] = "/target " .. clause
+            end
             put("type", "macro")
-            put("macrotext", "/cast " .. clause .. " " .. action.spell)
+            put("macrotext", table.concat(lines, "\n"))
         else
             put("type", "spell")
             put("spell", action.spell)
