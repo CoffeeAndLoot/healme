@@ -190,11 +190,12 @@ end
 -- Tabs
 ---------------------------------------------------------------------------
 
+-- Pages in tab order; each page's refresh runs only while it is shown.
 function Options:SelectTab(index)
-    ui.bindingsPage:SetShown(index == 1)
-    ui.settingsPage:SetShown(index == 2)
-    ui.profilesPage:SetShown(index == 3)
-    ui.helpPage:SetShown(index == 4)
+    ui.activeTab = index
+    for i = 1, #ui.pages do
+        ui.pages[i].frame:SetShown(i == index)
+    end
     self:Refresh()
 end
 
@@ -234,51 +235,7 @@ end
 
 local function newRow(index)
     local content = ui.listContent
-    local row = CreateFrame("Button", nil, content)
-    row:SetSize(content:GetWidth(), ROW_HEIGHT)
-
-    local plate = row:CreateTexture(nil, "BACKGROUND", nil, -2)
-    plate:SetPoint("TOPLEFT", 3, -2)
-    plate:SetPoint("BOTTOMRIGHT", -3, 2)
-    plate:SetColorTexture(0.3, 0.25, 0.18, 0.55)
-
-    local edge = row:CreateTexture(nil, "BACKGROUND", nil, -1)
-    edge:SetPoint("TOPLEFT", 4, -2)
-    edge:SetPoint("TOPRIGHT", -4, -2)
-    edge:SetHeight(1)
-    edge:SetColorTexture(0.72, 0.58, 0.32, 0.3)
-
-    row.sel = row:CreateTexture(nil, "BACKGROUND")
-    row.sel:SetAllPoints()
-    row.sel:SetColorTexture(0.85, 0.61, 0.12, 0.23)
-    row.sel:Hide()
-
-    row.bar = row:CreateTexture(nil, "BACKGROUND", nil, 1)
-    row.bar:SetWidth(2)
-    row.bar:SetPoint("TOPLEFT")
-    row.bar:SetPoint("BOTTOMLEFT")
-    row.bar:SetColorTexture(1, 0.82, 0, 0.9)
-    row.bar:Hide()
-
-    local hl = row:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
-    hl:SetColorTexture(1, 1, 1, 0.06)
-
-    row.icon = W.Icon(row, 32)
-    row.icon:SetPoint("LEFT", 10, 0)
-
-    row.name = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 10, -1)
-    row.name:SetPoint("RIGHT", -8, 0)
-    row.name:SetJustifyH("LEFT")
-    row.name:SetWordWrap(false)
-
-    row.detail = row:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    row.detail:SetPoint("BOTTOMLEFT", row.icon, "BOTTOMRIGHT", 10, 1)
-    row.detail:SetPoint("RIGHT", -8, 0)
-    row.detail:SetJustifyH("LEFT")
-    row.detail:SetWordWrap(false)
-
+    local row = W.ListRow(content, content:GetWidth(), ROW_HEIGHT, 32)
     row:SetScript("OnClick", function(self)
         selectedId = self.bindingId
         Options:Refresh()
@@ -338,10 +295,13 @@ local function buildEditor(page, list)
     ui.emptyHint:SetWidth(280)
     ui.emptyHint:SetText("Pick a binding on the left to edit it.")
 
+    -- Everything that only makes sense with a binding selected, header
+    -- included, hides together through this list.
+    ui.fields = { ui.headerIcon, ui.headerName, ui.headerCombo, ui.headerRule, ui.enabled }
+
     -- Neutral field labels keep gold reserved for section headings.
     local LABEL_X, CONTROL_X = 20, 126
     local y = -18
-    ui.fields = {}
 
     local function fieldLabel(text)
         local fs = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -592,42 +552,7 @@ end
 
 local function newProfileRow(index)
     local content = ui.profileContent
-    local row = CreateFrame("Button", nil, content)
-    row:SetSize(content:GetWidth(), ROW_HEIGHT)
-
-    local plate = row:CreateTexture(nil, "BACKGROUND", nil, -2)
-    plate:SetPoint("TOPLEFT", 3, -2)
-    plate:SetPoint("BOTTOMRIGHT", -3, 2)
-    plate:SetColorTexture(0.3, 0.25, 0.18, 0.55)
-
-    row.sel = row:CreateTexture(nil, "BACKGROUND")
-    row.sel:SetAllPoints()
-    row.sel:SetColorTexture(0.85, 0.61, 0.12, 0.23)
-    row.sel:Hide()
-
-    row.bar = row:CreateTexture(nil, "BACKGROUND", nil, 1)
-    row.bar:SetWidth(2)
-    row.bar:SetPoint("TOPLEFT")
-    row.bar:SetPoint("BOTTOMLEFT")
-    row.bar:SetColorTexture(1, 0.82, 0, 0.9)
-    row.bar:Hide()
-
-    local hl = row:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
-    hl:SetColorTexture(1, 1, 1, 0.06)
-
-    row.name = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-    row.name:SetPoint("TOPLEFT", 14, -6)
-    row.name:SetPoint("RIGHT", -8, 0)
-    row.name:SetJustifyH("LEFT")
-    row.name:SetWordWrap(false)
-
-    row.detail = row:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    row.detail:SetPoint("BOTTOMLEFT", 14, 6)
-    row.detail:SetPoint("RIGHT", -8, 0)
-    row.detail:SetJustifyH("LEFT")
-    row.detail:SetWordWrap(false)
-
+    local row = W.ListRow(content, content:GetWidth(), ROW_HEIGHT)
     row:SetScript("OnClick", function(self)
         selectedProfile = self.profileName
         profileError = nil
@@ -775,11 +700,9 @@ local function buildProfilesPage(f)
     end))
     ui.renameButton:SetPoint("LEFT", ui.renameBox, "RIGHT", 8, 0)
     y = y - 30
-    ui.renameNote = keep(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"))
+    ui.renameNote = keep(W.Note(plate))
     ui.renameNote:SetPoint("TOPLEFT", X + 10, y)
     ui.renameNote:SetPoint("RIGHT", -20, 0)
-    ui.renameNote:SetJustifyH("LEFT")
-    ui.renameNote:SetTextColor(0.65, 0.65, 0.6)
     y = y - 40
 
     heading("Active profile")
@@ -798,25 +721,18 @@ local function buildProfilesPage(f)
     -- Which profile this spec uses solo, in a party and in a raid. Applies
     -- on spec change and on every group change; a manual pick holds until
     -- the next one.
-    ui.ruleWidgets = {}
-    local function keepRule(w)
-        ui.ruleWidgets[#ui.ruleWidgets + 1] = w
-        return w
-    end
-
-    ui.rulesHeading = keepRule(W.Heading(plate, "Automatic switching", 340))
+    ui.rulesHeading = W.Heading(plate, "Automatic switching", 340)
     ui.rulesHeading:SetPoint("TOPLEFT", X, y)
-    keepRule(ui.rulesHeading.rule)
     y = y - 36
 
     local RULE_LABEL = { solo = "Solo", party = "In a party", raid = "In a raid" }
     ui.rules = {}
     for i = 1, #ns.Core.GROUP_TYPES do
         local groupType = ns.Core.GROUP_TYPES[i]
-        local label = keepRule(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight"))
+        local label = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
         label:SetPoint("TOPLEFT", X, y - 4)
         label:SetText(RULE_LABEL[groupType])
-        ui.rules[groupType] = keepRule(W.Dropdown(plate, 240,
+        ui.rules[groupType] = W.Dropdown(plate, 240,
             function()
                 local items = { "" }
                 local names = ns.Core:ProfileNames()
@@ -830,17 +746,22 @@ local function buildProfilesPage(f)
             function(value)
                 ns.Core:SetRule(groupType, value)
                 profileAction(true)
-            end))
+            end)
         ui.rules[groupType]:SetPoint("TOPLEFT", X + 106, y)
         y = y - 30
     end
-    ui.rulesNote = keepRule(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"))
-    ui.rulesNote:SetPoint("TOPLEFT", X + 10, y)
-    ui.rulesNote:SetPoint("RIGHT", -20, 0)
-    ui.rulesNote:SetJustifyH("LEFT")
-    ui.rulesNote:SetTextColor(0.65, 0.65, 0.6)
-    ui.rulesNote:SetText("Rules apply when your spec or group changes. A profile you pick by hand "
-        .. "stays until the next change.")
+    local rulesNote = W.Note(plate, "Rules apply when your spec or group changes. "
+        .. "A profile you pick by hand stays until the next change.")
+    rulesNote:SetPoint("TOPLEFT", X + 10, y)
+    rulesNote:SetPoint("RIGHT", -20, 0)
+end
+
+-- "5 bindings, active, this spec"
+local function profileText(info)
+    local parts = { W.Plural(info.count, "binding") }
+    if info.active then parts[#parts + 1] = "active" end
+    if info.spec then parts[#parts + 1] = "this spec" end
+    return table.concat(parts, ", ")
 end
 
 local function refreshProfiles()
@@ -859,16 +780,12 @@ local function refreshProfiles()
         row.profileName = info.name
         row.name:SetText(info.name)
 
-        local parts = { info.count .. (info.count == 1 and " binding" or " bindings") }
-        if info.active then parts[#parts + 1] = "active" end
-        if info.spec then parts[#parts + 1] = "this spec" end
-        row.detail:SetText(table.concat(parts, ", "))
+        row.detail:SetText(profileText(info))
         row.detail:SetTextColor(1, 0.82, 0)
 
         local isSelected = info.name == selectedProfile
         found = found or isSelected
-        row.sel:SetShown(isSelected)
-        row.bar:SetShown(isSelected)
+        row:SetSelected(isSelected)
         row:ClearAllPoints()
         row:SetPoint("TOPLEFT", 0, -y)
         row:Show()
@@ -900,7 +817,6 @@ local function refreshProfiles()
     local spec = ns.Core:SpecName()
     ui.rulesHeading:SetText(spec and ("Automatic switching for " .. spec)
         or "Automatic switching")
-    for i = 1, #ui.ruleWidgets do ui.ruleWidgets[i]:Show() end
     for _, dropdown in pairs(ui.rules) do
         dropdown:Refresh()
     end
@@ -910,10 +826,7 @@ local function refreshProfiles()
     end
 
     ui.profileTitle:SetText(info.name)
-    local state = info.count .. (info.count == 1 and " binding" or " bindings")
-    if info.active then state = state .. ", active" end
-    if info.spec then state = state .. ", this spec's profile" end
-    ui.profileState:SetText(state)
+    ui.profileState:SetText(profileText(info))
 
     ui.switchButton:SetEnabled(not info.active)
     ui.copyButton:SetEnabled(not info.active)
@@ -991,10 +904,8 @@ local function buildSettingsPage(f)
     end)
     ui.nativeButton:SetPoint("TOPLEFT", X + 4, y)
     y = y - 28
-    ui.nativeNote = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    ui.nativeNote = W.Note(inset, nil, 520)
     ui.nativeNote:SetPoint("TOPLEFT", X + 30, y)
-    ui.nativeNote:SetWidth(520)
-    ui.nativeNote:SetJustifyH("LEFT")
     y = y - 30
     y = y - 10
 
@@ -1062,9 +973,6 @@ local function buildHelpPage(f)
 end
 
 local function refreshHelp()
-    if not ui.helpHeaders then
-        return
-    end
     if helpOpen == nil and #ui.helpHeaders > 0 then
         helpOpen = 1
     end
@@ -1086,6 +994,23 @@ local function refreshHelp()
         end
     end
     ui.helpContent:SetHeight(math.max(1, y))
+end
+
+local function refreshSettings()
+    ui.alsoTarget:SetChecked(ns.Core:Settings().alsoTarget and true or false)
+    ui.minimap:SetChecked(not ns.MinimapButton:IsHidden())
+
+    -- Re-read each time the tab shows: the player may have just closed
+    -- Blizzard's window.
+    local native = ns.Native.Bindings()
+    if #native == 0 then
+        ui.nativeNote:SetText("Blizzard's click-casting has no spell bindings. Good: only HealMe casts.")
+        ui.nativeNote:SetTextColor(0.65, 0.65, 0.6)
+    else
+        ui.nativeNote:SetText(ns.Native.Warning(native)
+            .. ". Remove them there, or they ignore your frame scopes.")
+        ui.nativeNote:SetTextColor(1, 0.45, 0.35)
+    end
 end
 
 ---------------------------------------------------------------------------
@@ -1212,7 +1137,7 @@ function Options:ShowShare(mode)
         s.action:SetText("Import")
         s.box:SetText("")
     end
-    if s.SetTitle then s:SetTitle(title) elseif s.TitleText then s.TitleText:SetText(title) end
+    s:SetTitle(title)
 
     s:Show()
     s:Raise()
@@ -1321,10 +1246,6 @@ local function refreshEditor()
     ui.deleteButton:SetEnabled(record ~= nil)
     ui.emptyHint:SetShown(record == nil)
 
-    local headerWidgets = {
-        ui.headerIcon, ui.headerName, ui.headerCombo, ui.headerRule, ui.enabled,
-    }
-    for i = 1, #headerWidgets do headerWidgets[i]:SetShown(record ~= nil) end
     for i = 1, #ui.fields do ui.fields[i]:SetShown(record ~= nil) end
 
     if not record then
@@ -1389,25 +1310,10 @@ function Options:Refresh()
     end
 
     ui.profile:Refresh()
-    ui.alsoTarget:SetChecked(ns.Core:Settings().alsoTarget and true or false)
-    ui.minimap:SetChecked(not ns.MinimapButton:IsHidden())
-
-    local native = ns.Native.Bindings()
-    if #native == 0 then
-        ui.nativeNote:SetText("Blizzard's click-casting has no spell bindings. Good: only HealMe casts.")
-        ui.nativeNote:SetTextColor(0.65, 0.65, 0.6)
-    else
-        ui.nativeNote:SetText("Blizzard's click-casting still has " .. #native
-            .. " binding" .. (#native == 1 and "" or "s")
-            .. " that fire alongside HealMe on every frame: " .. ns.Native.Describe(native)
-            .. ". Remove them there, or they ignore your frame scopes.")
-        ui.nativeNote:SetTextColor(1, 0.45, 0.35)
+    local page = ui.pages[ui.activeTab or 1]
+    if page then
+        page.refresh()
     end
-
-    refreshList()
-    refreshEditor()
-    refreshProfiles()
-    refreshHelp()
 end
 
 ---------------------------------------------------------------------------
@@ -1417,6 +1323,13 @@ end
 function Options:Initialize()
     W = ns.Widgets
     ui.frame = buildWindow()
+    -- Wired here, after every page's refresh function is in scope.
+    ui.pages = {
+        { frame = ui.bindingsPage, refresh = function() refreshList() refreshEditor() end },
+        { frame = ui.settingsPage, refresh = refreshSettings },
+        { frame = ui.profilesPage, refresh = refreshProfiles },
+        { frame = ui.helpPage, refresh = refreshHelp },
+    }
     ui.tabs:Select(1)
     ns.Core:RegisterListener(function()
         Options:Refresh()

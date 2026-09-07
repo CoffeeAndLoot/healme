@@ -94,15 +94,19 @@ function Native.Bindings()
     return Native.Summarize(profile, nameOf, modifierText)
 end
 
+-- The sentence both the login line and the Settings tab lead with.
+function Native.Warning(list)
+    return "Blizzard's click-casting still has " .. ns.Widgets.Plural(#list, "binding")
+        .. " that fire alongside HealMe: " .. Native.Describe(list)
+end
+
 -- One console line at login, only when there is something to say.
 function Native.Warn()
     local list = Native.Bindings()
     if #list == 0 then
         return false
     end
-    ns.Core:Print("Blizzard's click-casting still has " .. #list
-        .. " binding" .. (#list == 1 and "" or "s")
-        .. " that fire alongside HealMe: " .. Native.Describe(list)
+    ns.Core:Print(Native.Warning(list)
         .. ". Open it with /healme native, or from the spellbook's Click Casting button.")
     return true
 end

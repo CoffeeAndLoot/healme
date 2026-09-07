@@ -156,6 +156,87 @@ function Widgets.Panel(parent)
     return p
 end
 
+-- A selectable list row on a warm plate: name in white, gold detail
+-- beneath, a gold tint and bar when selected. With `iconSize` the texts
+-- sit right of an icon frame; without, they sit at the left edge.
+function Widgets.ListRow(parent, width, height, iconSize)
+    local row = CreateFrame("Button", nil, parent)
+    row:SetSize(width, height)
+
+    local plate = row:CreateTexture(nil, "BACKGROUND", nil, -2)
+    plate:SetPoint("TOPLEFT", 3, -2)
+    plate:SetPoint("BOTTOMRIGHT", -3, 2)
+    plate:SetColorTexture(0.3, 0.25, 0.18, 0.55)
+
+    local edge = row:CreateTexture(nil, "BACKGROUND", nil, -1)
+    edge:SetPoint("TOPLEFT", 4, -2)
+    edge:SetPoint("TOPRIGHT", -4, -2)
+    edge:SetHeight(1)
+    edge:SetColorTexture(0.72, 0.58, 0.32, 0.3)
+
+    row.sel = row:CreateTexture(nil, "BACKGROUND")
+    row.sel:SetAllPoints()
+    row.sel:SetColorTexture(0.85, 0.61, 0.12, 0.23)
+    row.sel:Hide()
+
+    row.bar = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.bar:SetWidth(2)
+    row.bar:SetPoint("TOPLEFT")
+    row.bar:SetPoint("BOTTOMLEFT")
+    row.bar:SetColorTexture(1, 0.82, 0, 0.9)
+    row.bar:Hide()
+
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    hl:SetColorTexture(1, 1, 1, 0.06)
+
+    row.name = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    row.name:SetPoint("RIGHT", -8, 0)
+    row.name:SetJustifyH("LEFT")
+    row.name:SetWordWrap(false)
+
+    row.detail = row:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    row.detail:SetPoint("RIGHT", -8, 0)
+    row.detail:SetJustifyH("LEFT")
+    row.detail:SetWordWrap(false)
+
+    if iconSize then
+        row.icon = Widgets.Icon(row, iconSize)
+        row.icon:SetPoint("LEFT", 10, 0)
+        row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 10, -1)
+        row.detail:SetPoint("BOTTOMLEFT", row.icon, "BOTTOMRIGHT", 10, 1)
+    else
+        row.name:SetPoint("TOPLEFT", 14, -6)
+        row.detail:SetPoint("BOTTOMLEFT", 14, 6)
+    end
+
+    row.SetSelected = function(self, selected)
+        self.sel:SetShown(selected)
+        self.bar:SetShown(selected)
+    end
+    return row
+end
+
+-- Dim explanatory text under a control, wrapped to the given width or to
+-- the parent's right edge.
+function Widgets.Note(parent, text, width)
+    local fs = parent:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    fs:SetJustifyH("LEFT")
+    fs:SetTextColor(0.65, 0.65, 0.6)
+    if width then
+        fs:SetWidth(width)
+    end
+    if text then
+        fs:SetText(text)
+    end
+    return fs
+end
+
+-- "3 bindings", "1 binding".
+function Widgets.Plural(count, word)
+    return count .. " " .. word .. (count == 1 and "" or "s")
+end
+
 -- A quest-log style group header: the dark rounded bar, large shadowed
 -- text, and the gold plus or minus at the right.
 function Widgets.ListHeader(parent, width, height, onClick)
@@ -318,16 +399,25 @@ local function fallbackDropdown(parent, width, items, labels, current, onSelect)
     return d
 end
 
+-- The modern dropdown frame, or nil on a client without the template.
+local function modernDropdown(parent, width)
+    local ok, d = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    if not ok or not d or not d.SetupMenu then
+        return nil
+    end
+    d:SetWidth(width)
+    return d
+end
+
 -- `items` is the ordered value list, or a function returning one for sets
 -- that change. `current` returns the selected value; `onSelect` receives a
 -- chosen one. Call :Refresh() after the underlying value changes.
 function Widgets.Dropdown(parent, width, items, labels, current, onSelect)
-    local ok, d = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-    if not ok or not d or not d.SetupMenu then
+    local d = modernDropdown(parent, width)
+    if not d then
         return fallbackDropdown(parent, width, items, labels, current, onSelect)
     end
 
-    d:SetWidth(width)
     d:SetupMenu(function(_, root)
         local order = itemsOf(items)
         for i = 1, #order do
@@ -350,8 +440,8 @@ end
 -- tick. `isOn(value)` reports a box; `toggle(value, on)` changes one; the
 -- button reads `summary()`. Call :Refresh() after the set changes.
 function Widgets.MultiDropdown(parent, width, order, labels, isOn, toggle, summary)
-    local ok, d = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-    if not ok or not d or not d.SetupMenu or not d.OverrideText then
+    local d = modernDropdown(parent, width)
+    if not d or not d.OverrideText then
         -- Without the modern menu, fall back to cycling single choices: a
         -- plain list of "All" plus each kind on its own.
         local values = { "" }
@@ -444,12 +534,11 @@ end
 -- its icon. `onPick` receives the chosen spell name. Returns nil when the
 -- client lacks the modern menu, and the caller shows the text field alone.
 function Widgets.SpellbookPicker(parent, width, onPick)
-    local ok, d = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-    if not ok or not d or not d.SetupMenu then
+    local d = modernDropdown(parent, width)
+    if not d then
         return nil
     end
 
-    d:SetWidth(width)
     if d.SetDefaultText then
         d:SetDefaultText("Spellbook")
     end
@@ -579,11 +668,14 @@ function Widgets.Window(name, title, width, height)
     -- Escape closes it, like any other panel.
     tinsert(UISpecialFrames, name)
 
-    if f.SetTitle then
-        f:SetTitle(title)
-    elseif f.TitleText then
-        f.TitleText:SetText(title)
+    -- The template mixin supplies SetTitle; give an older one the same
+    -- method so callers never need the fallback.
+    if not f.SetTitle then
+        f.SetTitle = function(self, text)
+            if self.TitleText then self.TitleText:SetText(text) end
+        end
     end
+    f:SetTitle(title)
 
     if f.SetPortraitToAsset then
         f:SetPortraitToAsset(ICON)
