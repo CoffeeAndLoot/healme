@@ -1,4 +1,4 @@
-local addonName, ns = ...
+local _, ns = ...
 ns = ns or {}
 
 local Options = {}
@@ -404,9 +404,9 @@ local function buildEditor(page, list)
         local previous = r.frames
         local set = {}
         for i = 1, #ns.Bindings.FRAMES do
-            local class = ns.Bindings.FRAMES[i]
-            if ns.Bindings.FrameAllowed(r, class) then
-                set[class] = true
+            local kind = ns.Bindings.FRAMES[i]
+            if ns.Bindings.FrameAllowed(r, kind) then
+                set[kind] = true
             end
         end
         set[class] = on or nil
@@ -504,9 +504,9 @@ local function buildBindingsPage(f)
 
     -- Creation belongs to the list; selection actions belong to the editor.
     ui.newButton = W.Button(page, "New binding", 120, function()
-        local list = bindings()
+        local records = bindings()
         local record = {
-            id = ns.Bindings.NextId(list),
+            id = ns.Bindings.NextId(records),
             -- Created disabled: it lands on plain left click with no spell,
             -- and if it were live it would overwrite an existing left-click
             -- binding with a cast of nothing on the next compile.
@@ -1070,9 +1070,9 @@ function Options:ShowShare(mode)
         box:SetMultiLine(true)
         box:SetFontObject("ChatFontNormal")
         box:SetAutoFocus(false)
-        box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
-        box:SetScript("OnTextChanged", function(self)
-            scroll.content:SetHeight(math.max(1, self:GetHeight() + 12))
+        box:SetScript("OnEscapePressed", function(b) b:ClearFocus() end)
+        box:SetScript("OnTextChanged", function(b)
+            scroll.content:SetHeight(math.max(1, b:GetHeight() + 12))
         end)
         -- Clicking anywhere in the pane focuses the box, as a text area should.
         inset:EnableMouse(true)

@@ -2,8 +2,8 @@ return function(h)
     local env = setmetatable({}, { __index = _G })
     env.CreateFrame = function()
         local box = { scripts = {}, text = "draft", focused = true }
-        function box:SetSize() end
-        function box:SetAutoFocus() end
+        box.SetSize = function() end
+        box.SetAutoFocus = function() end
         function box:SetScript(event, fn) self.scripts[event] = fn end
         function box:GetText() return self.text end
         function box:ClearFocus()

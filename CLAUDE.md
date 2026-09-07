@@ -25,6 +25,20 @@ running. Run the tests through the `lupa` Python package instead:
 python -c "import lupa.lua51 as L; lua=L.LuaRuntime(unpack_returned_tuples=True); print(lua.execute(open('test/run.lua').read().replace('os.exit(harness.run())','return harness.run()')))"
 ```
 
+luacheck runs on this box from PowerShell (Lua 5.4 under
+`~/AppData/Local/Programs/Lua/bin`, luacheck in `~/.luarocks` with a tiny
+`lfs.lua` shim there since no C compiler exists):
+
+```
+$env:PATH = "$HOME\AppData\Local\Programs\Luain;$env:PATH"
+$env:LUA_PATH = "$HOME\.luarocks\share\lua.4\?.lua;$HOME\.luarocks\share\lua.4\?\init.lua;;"
+lua "$HOME\.luarocks\share\lua.4\luacheck\main.lua" HealMe test --no-color --no-cache
+```
+
+Keep it at zero warnings. Unused `self` is silenced by config; a Blizzard
+table we add entries to belongs in `globals`, one we only read in
+`read_globals`.
+
 Run a single suite by editing the `suites` list in `test/run.lua` temporarily,
 or `dofile` one `test/test_*.lua` file with the harness and loaded modules.
 Add any new WoW global you use to `read_globals` in `.luacheckrc`.

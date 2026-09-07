@@ -203,7 +203,8 @@ return function(h, m)
 
         h.it("keeps only the first of two records on the same key", function()
             local input = {
-                record({ id = "x1", key = { button = "BUTTON1" }, action = { kind = "spell", spell = "Rejuvenation" } }),
+                record({ id = "x1", key = { button = "BUTTON1" },
+                    action = { kind = "spell", spell = "Rejuvenation" } }),
                 record({ id = "x2", key = { button = "BUTTON1" }, action = { kind = "spell", spell = "Regrowth" } }),
             }
             local accepted, skipped = Bindings.Sanitize(input, deps)

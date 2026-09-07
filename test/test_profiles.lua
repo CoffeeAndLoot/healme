@@ -77,8 +77,8 @@ return function(h)
             h.eq(name, "Coffee - Suramar")
             h.eq(switched, true)
 
-            name, switched = c:AutoSwitch()
-            h.eq(switched, false)
+            local _, again = c:AutoSwitch()
+            h.eq(again, false)
         end)
 
         h.it("applies a rule as soon as it is set", function()

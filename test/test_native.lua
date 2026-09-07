@@ -13,7 +13,7 @@ return function(h, m)
     }
 
     local names = { [774] = "Rejuvenation", [8936] = "Regrowth", [33763] = "Lifebloom" }
-    local function nameOf(kind, id) return names[id] end
+    local function nameOf(_, id) return names[id] end
     local function mods(bits) return bits == 0 and "" or "ALT" end
 
     h.describe("Native.Summarize", function()
@@ -30,7 +30,7 @@ return function(h, m)
             local list = Native.Summarize({
                 { button = "RightButton", type = 2, modifiers = 1, actionID = 7 },
                 { button = "Button4", type = 4, modifiers = 0, actionID = 9 },
-            }, function(kind, id)
+            }, function(kind)
                 if kind == 2 then return "macro Heal" end
                 return "Growl"
             end, mods)
