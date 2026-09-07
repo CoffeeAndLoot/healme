@@ -118,6 +118,7 @@ D:\healme\
     Compiler.lua
     Secure.lua
     Bindings.lua
+    Widgets.lua
     Options.lua
     Serialize.lua
     Media\icon.tga
@@ -217,7 +218,8 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 | `Minimap.lua` | The minimap button and its account-wide position. | Options |
 | `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
-| `Options.lua` | A standalone window built from base frames, with hand-rolled dropdowns. | Bindings |
+| `Widgets.lua` | Constructors for the panel's controls, on Blizzard's own templates with a hand-built fallback for the dropdown. | none |
+| `Options.lua` | A standalone portrait window: tabs, a grouped binding list, the editor, the settings page and the share window. | Bindings, Widgets |
 | `Serialize.lua` | Export/import strings, and the field-based codec that produces them. | none |
 
 ## 9. Data model
@@ -431,23 +433,34 @@ a healer is least able to diagnose it.
 
 ## 13. Options panel
 
-A standalone movable window built from base frames, opened by `/healme`, by
-the minimap button, or from the addon compartment. Escape closes it.
+A standalone movable window opened by `/healme`, by the minimap button, or
+from the addon compartment. Escape closes it.
 
-No widget library is involved. Dropdowns in particular are hand-rolled from a
-button plus a popup list: Blizzard reworked its dropdown templates in 11.x, and
-a wrong template name yields a silent nil frame rather than an error, which is
-close to undiagnosable from outside the client.
+It is built on Blizzard's own templates so it reads as a built-in panel: a
+`ButtonFrameTemplate` portrait window with the HealMe icon in the ring, top
+tabs under the title bar, `InsetFrameTemplate` panes, `WowStyle1Dropdown`
+pickers and the slim modern scrollbar. No widget library is involved. The
+templates have been stable since 10.0 and 11.0, and the one reworked most
+recently, the dropdown, is constructed under `pcall` with a hand-built list as
+fallback, so a renamed template costs the look rather than the addon.
 
-Contents:
+Layout:
 
-- An **"Also target"** checkbox (§10) and a **"Show minimap button"** checkbox.
-- A scrolling list of the bindings in the active profile, each row showing its
-  combo, its action, and its conditions. Disabled bindings are greyed.
-- An editor for the selected binding: enabled, button, modifiers, action kind,
-  spell or macro text, and the three condition dropdowns.
-- New binding and Delete.
-- Export and Import, in a second window with a selectable text box.
+- The tab strip holds **Bindings** and **Settings** on the left and the
+  **profile picker** on the right, which switches profiles the same way
+  `/healme profile <name>` does.
+- **Bindings** is two panes. The left is the binding list grouped by mouse
+  button, quest-log style: a collapsible header per button with a count, and
+  spellbook-style rows beneath showing the action's icon, its name in white,
+  and a gold subline of modifiers and conditions. Disabled bindings are dimmed
+  and say so in the subline. The right pane is the editor: a large header with
+  the icon, the action name and the combination in gold, an Enabled checkbox,
+  then the form (button, modifiers, action, spell or macro text) and an "Only
+  when" section with the three condition dropdowns. New binding and Delete sit
+  in the window's bottom bar.
+- **Settings** carries the **"Also target"** checkbox (§10), **"Show minimap
+  button"**, and Export and Import, which open the share window: a portrait
+  window with a selectable text box.
 
 **A new binding is created disabled.** It lands on plain left click with no
 spell, and if it were live it would overwrite an existing left-click binding

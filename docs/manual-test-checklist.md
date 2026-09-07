@@ -124,9 +124,10 @@ steps above:
 - [ ] `/healme` with no arguments opens the panel
 - [ ] The minimap button opens it too, and Escape closes it
 - [ ] The window can be dragged, and stays where it is put
-- [ ] "New binding" adds a row; selecting it shows the editor
-- [ ] Create a new binding and confirm it appears marked "(disabled)" in the
-      list and does not affect BUTTON1 (its default button) or any existing
+- [ ] "New binding" adds a row under the "Left click" header; selecting it
+      shows the editor with the big icon and name header
+- [ ] Create a new binding and confirm it appears dimmed with "disabled" in
+      its gold subline and does not affect BUTTON1 (its default button) or any existing
       binding on that button. Then set a spell, tick Enabled, and confirm it
       starts working
 - [ ] Setting button and spell produces a working click-cast without a reload
@@ -134,11 +135,19 @@ steps above:
       field reverts
 - [ ] Creating a second binding on the same button+modifiers prints
       "that combination is already used by: ..." and reverts
-- [ ] Choosing "Open unit menu" hides the conditions group
-- [ ] The "Also target" toggle changes behaviour immediately: with it on, a
+- [ ] Choosing "Open unit menu" hides the "Only when" section
+- [ ] Clicking a button header collapses its group and the plus/minus flips;
+      the count stays visible while collapsed
+- [ ] The Bindings and Settings tabs switch pages; New binding and Delete only
+      show on Bindings
+- [ ] The window has the round portrait, gold title bar and dark stone
+      background of a Blizzard panel, and the dropdowns match the game's own
+- [ ] The "Also target" toggle on the Settings tab changes behaviour immediately: with it on, a
       heal click also switches your target
-- [ ] Switching specialisation swaps the binding list, and the profile line
-      at the top of the window updates to match
+- [ ] Switching specialisation swaps the binding list, and the profile picker
+      in the tab strip updates to match
+- [ ] Picking another profile from the picker swaps the list and prints nothing
+      odd
 - [ ] Deleting a binding asks for confirmation and stops the bind firing
 - [ ] Create a spell binding, then change its Action to "Run a macro" without
       entering macro text. Expect a rejection message AND the Action dropdown
@@ -150,7 +159,7 @@ steps above:
 
 ## Task 12 — export and import
 
-- [ ] The Share tab shows a string beginning "!HM1!"
+- [ ] Export on the Settings tab shows a string beginning "!HM1!"
 - [ ] Copy it, switch to another profile, paste into Import: the bindings appear
       and immediately work
 - [ ] Pasting rubbish prints "import failed: that does not look like a HealMe
