@@ -313,6 +313,12 @@ function Core:OnLogin()
     if ns.MinimapButton and ns.MinimapButton.Initialize then
         ns.MinimapButton:Initialize()
     end
+
+    -- Native click-casting fires beside HealMe, so a forgotten native spell
+    -- binding shows up as a bind that ignores its frame scope. Say so once.
+    if ns.Native and ns.Native.Warn then
+        ns.Native.Warn()
+    end
 end
 
 function Core:OnSpecChanged(unit)
@@ -531,6 +537,17 @@ function Core:OnSlashCommand(input)
         return
     end
 
+    if command == "native" then
+        local list = ns.Native.Bindings()
+        if #list == 0 then
+            self:Print("Blizzard's click-casting has no spell bindings")
+        else
+            self:Print("Blizzard's click-casting: " .. ns.Native.Describe(list))
+        end
+        ns.Native.OpenWindow()
+        return
+    end
+
     if command == "clear" then
         local list = self:Bindings()
         for i = #list, 1, -1 do
@@ -542,7 +559,7 @@ function Core:OnSlashCommand(input)
     end
 
     self:Print("usage: /healme [status | diag | simulate | profile [name] "
-            .. "| bind <button> <spell> | clear]")
+            .. "| bind <button> <spell> | native | clear]")
 end
 
 SLASH_HEALME1 = "/healme"

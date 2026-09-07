@@ -29,6 +29,13 @@ cannot do:
 | Third-party unit frames (Grid2, ElvUI, Cell, SUF) | partial | yes |
 | Export / import / version-control your binds | no | yes |
 
+HealMe does not switch native click-casting off. Native binds through its
+own secure header, beside HealMe's attributes, so a native spell binding keeps
+firing on every frame whatever HealMe does, and ignores HealMe's frame scopes.
+HealMe never edits that profile: `Native.lua` reads it, warns once at login
+when spell, macro or pet bindings are present, shows the same on the Settings
+tab, and opens Blizzard's window (`/healme native`) so the player clears them.
+
 HealMe replaces native click-casting rather than supplementing it, so there is
 one place to look when a bind misbehaves.
 

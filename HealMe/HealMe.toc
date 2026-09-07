@@ -12,6 +12,7 @@ Bindings.lua
 Registry.lua
 Secure.lua
 Serialize.lua
+Native.lua
 Widgets.lua
 Options.lua
 Minimap.lua

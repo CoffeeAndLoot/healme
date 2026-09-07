@@ -169,6 +169,17 @@ steps above:
       re-enable it. Expect the conflict message and the binding to stay
       disabled.
 
+## Native click-casting
+
+- [ ] With a spell in Blizzard's Click Casting window, /reload: one line
+      names it and the button, and points at /healme native
+- [ ] The Settings tab shows the same in red above the Open Click Casting
+      button; the button opens Blizzard's window
+- [ ] Clear the native spells there and Save: the Settings line turns grey
+      and says only HealMe casts; the next /reload prints nothing
+- [ ] With native clear, a Party, Raid scoped bind right-clicked on the
+      player portrait opens the context menu instead of casting
+
 ## Frame scope
 
 - [ ] On a binding, open "On frames" and untick everything but Party and

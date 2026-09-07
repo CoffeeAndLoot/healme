@@ -15,4 +15,5 @@ read_globals = {
     -- Frame API used by the options panel and minimap button
     "tinsert", "UISpecialFrames", "Minimap", "GameTooltip", "GetCursorPosition",
     "ScrollUtil", "C_Texture", "CreateFramePool", "C_SpellBook", "Enum",
+    "C_ClickBindings", "GetMacroInfo", "GetStringFromModifiers", "ToggleClickBindingFrame",
 }

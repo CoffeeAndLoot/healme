@@ -623,6 +623,22 @@ local function buildSettingsPage(f)
     note("The button opens this window. Right-click it to toggle Also target.")
     y = y - 10
 
+    -- Blizzard's own click-casting runs beside HealMe; a native spell
+    -- binding fires on every frame whatever HealMe's scope says. Show what
+    -- is there and hand the player Blizzard's window.
+    section("Blizzard click-casting")
+    ui.nativeButton = W.Button(inset, "Open Click Casting", 160, function()
+        ns.Native.OpenWindow()
+    end)
+    ui.nativeButton:SetPoint("TOPLEFT", X + 4, y)
+    y = y - 28
+    ui.nativeNote = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    ui.nativeNote:SetPoint("TOPLEFT", X + 30, y)
+    ui.nativeNote:SetWidth(520)
+    ui.nativeNote:SetJustifyH("LEFT")
+    y = y - 30
+    y = y - 10
+
     section("Share bindings")
     ui.exportButton = W.Button(inset, "Export", 110, function()
         Options:ShowShare("export")
@@ -928,6 +944,18 @@ function Options:Refresh()
     ui.profile:Refresh()
     ui.alsoTarget:SetChecked(ns.Core:Settings().alsoTarget and true or false)
     ui.minimap:SetChecked(not ns.MinimapButton:IsHidden())
+
+    local native = ns.Native.Bindings()
+    if #native == 0 then
+        ui.nativeNote:SetText("Blizzard's click-casting has no spell bindings. Good: only HealMe casts.")
+        ui.nativeNote:SetTextColor(0.65, 0.65, 0.6)
+    else
+        ui.nativeNote:SetText("Blizzard's click-casting still has " .. #native
+            .. " binding" .. (#native == 1 and "" or "s")
+            .. " that fire alongside HealMe on every frame: " .. ns.Native.Describe(native)
+            .. ". Remove them there, or they ignore your frame scopes.")
+        ui.nativeNote:SetTextColor(1, 0.45, 0.35)
+    end
 
     refreshList()
     refreshEditor()

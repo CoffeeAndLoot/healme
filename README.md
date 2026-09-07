@@ -18,7 +18,10 @@ cannot do:
 - Third-party unit frames, through the community `ClickCastFrames` protocol
 - Export and import, so you can share or version-control your bindings
 
-HealMe replaces native click-casting rather than supplementing it.
+HealMe replaces native click-casting rather than supplementing it. Native
+bindings keep firing beside HealMe's, so clear the spells from Blizzard's
+Click Casting window; HealMe warns at login while any remain, and
+`/healme native` opens that window.
 
 ## Install
 
