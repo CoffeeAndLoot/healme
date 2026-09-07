@@ -366,6 +366,65 @@ function Core:OnSlashCommand(input)
         return
     end
 
+    -- Reports the state that cannot be seen from the outside. WrapScript leaves
+    -- no readable mark on a frame, so "did the wheel handlers get attached?" is
+    -- otherwise only answerable by joining a raid and scrolling.
+    if command == "diag" then
+        local registered = ns.Registry:Count()
+        local wrapped = ns.Secure:WrappedCount()
+
+        self:Print("frames registered: " .. registered)
+        self:Print("frames wheel-wrapped: " .. wrapped
+            .. (registered == wrapped and "  (matches)" or "  MISMATCH"))
+        self:Print("wheel proxy: " .. tostring(ns.Secure.proxy ~= nil))
+        self:Print("compiled attributes: " .. #(ns.Secure.attributes or {}))
+
+        local wheelBinds = 0
+        local list = self:Bindings()
+        for i = 1, #list do
+            local b = list[i].key.button
+            if (b == "WHEELUP" or b == "WHEELDOWN") and list[i].enabled ~= false then
+                wheelBinds = wheelBinds + 1
+            end
+        end
+        self:Print("enabled wheel bindings: " .. wheelBinds)
+        return
+    end
+
+    -- Reproduces the case a raid would produce: a frame that registers after
+    -- login. Deregistering and re-registering an existing frame drives exactly
+    -- the same path a freshly-created raid frame takes, so the wheel wiring can
+    -- be verified solo.
+    if command == "simulate" then
+        local before = ns.Secure:WrappedCount()
+        local frame = PlayerFrame
+
+        if not frame then
+            self:Print("no PlayerFrame to test with")
+            return
+        end
+
+        ns.Registry:Unregister(frame)
+        local afterUnregister = ns.Secure:IsWrapped(frame)
+
+        ns.Registry:Register(frame)
+        local afterRegister = ns.Secure:IsWrapped(frame)
+
+        self:Print("simulating a frame arriving after login:")
+        self:Print("  wrapped before: " .. tostring(before > 0))
+        self:Print("  still wrapped after unregister: " .. tostring(afterUnregister)
+            .. "  (should be false)")
+        self:Print("  wrapped after re-register: " .. tostring(afterRegister)
+            .. "  (should be true)")
+
+        if afterRegister and not afterUnregister then
+            self:Print("  PASS - late-registering frames get wheel bindings")
+        else
+            self:Print("  FAIL - this is the raid-frame bug")
+        end
+        return
+    end
+
     if command == "clear" then
         local list = self:Bindings()
         for i = #list, 1, -1 do
@@ -376,7 +435,7 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    self:Print("usage: /healme [status | bind <button> <spell> | clear]")
+    self:Print("usage: /healme [status | diag | simulate | bind <button> <spell> | clear]")
 end
 
 SLASH_HEALME1 = "/healme"

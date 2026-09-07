@@ -69,6 +69,24 @@ end
 -- the secure header was never created (Registry:Initialize refused to run) or
 -- if wrapping this particular frame fails, so one bad frame cannot block the
 -- rest of a loop.
+-- Which frames have had the wheel handlers wrapped onto them. WrapScript state
+-- cannot be read back from a frame, so record it here: this is the only way to
+-- answer "did a frame that registered after login get its wheel bindings?",
+-- which is otherwise only observable by joining a raid and scrolling.
+local wrapped = setmetatable({}, { __mode = "k" })
+
+function Secure:WrappedCount()
+    local n = 0
+    for _ in pairs(wrapped) do
+        n = n + 1
+    end
+    return n
+end
+
+function Secure:IsWrapped(frame)
+    return wrapped[frame] and true or false
+end
+
 function Secure:WrapFrame(frame)
     local header = ns.Registry.header
     if not header then
@@ -84,6 +102,7 @@ function Secure:WrapFrame(frame)
         header:WrapScript(frame, "OnLeave", [[
             control:RunFor(self, control:GetAttribute("healme_clear"))
         ]])
+        wrapped[frame] = true
     end)
 end
 
@@ -147,6 +166,8 @@ function Secure:ClearFrame(frame)
             header:UnwrapScript(frame, "OnEnter")
             header:UnwrapScript(frame, "OnLeave")
         end
+
+        wrapped[frame] = nil
     end)
 end
 
