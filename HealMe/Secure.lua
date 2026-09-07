@@ -292,13 +292,18 @@ local function wheelBindings()
     return keybinds, identifiers, scopes
 end
 
+-- On the desktop runner each module loads with its own namespace, so fall
+-- back to a local copy of the class order rather than reaching for Bindings.
+local FRAME_ORDER = { "player", "target", "focus", "pet", "party", "raid", "other" }
+
 function Secure.ScopeString(frames)
     if not frames then
         return ""
     end
+    local order = (ns.Bindings and ns.Bindings.FRAMES) or FRAME_ORDER
     local list = {}
-    for i = 1, #ns.Bindings.FRAMES do
-        local class = ns.Bindings.FRAMES[i]
+    for i = 1, #order do
+        local class = order[i]
         if frames[class] then
             list[#list + 1] = class
         end
