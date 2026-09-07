@@ -190,6 +190,25 @@ end
 -- Tabs
 ---------------------------------------------------------------------------
 
+-- Adds a binding to the active profile and selects it. Created disabled:
+-- it lands on plain left click with no spell, and if it were live it would
+-- overwrite an existing left-click binding with a cast of nothing on the
+-- next compile.
+function Options:NewBinding()
+    local records = bindings()
+    local record = {
+        id = ns.Bindings.NextId(records),
+        enabled = false,
+        key = { button = "BUTTON1" },
+        action = { kind = "spell", spell = "" },
+    }
+    records[#records + 1] = record
+    selectedId = record.id
+    collapsed[record.key.button] = nil
+    self:Refresh()
+    return record
+end
+
 -- Pages in tab order; each page's refresh runs only while it is shown.
 function Options:SelectTab(index)
     ui.activeTab = index
@@ -504,20 +523,7 @@ local function buildBindingsPage(f)
 
     -- Creation belongs to the list; selection actions belong to the editor.
     ui.newButton = W.Button(page, "New binding", 120, function()
-        local records = bindings()
-        local record = {
-            id = ns.Bindings.NextId(records),
-            -- Created disabled: it lands on plain left click with no spell,
-            -- and if it were live it would overwrite an existing left-click
-            -- binding with a cast of nothing on the next compile.
-            enabled = false,
-            key = { button = "BUTTON1" },
-            action = { kind = "spell", spell = "" },
-        }
-        list[#list + 1] = record
-        selectedId = record.id
-        collapsed[record.key.button] = nil
-        Options:Refresh()
+        Options:NewBinding()
     end)
     ui.newButton:SetPoint("TOPRIGHT", list, "BOTTOMRIGHT", 0, -8)
     ui.newButton:SetWidth(140)
