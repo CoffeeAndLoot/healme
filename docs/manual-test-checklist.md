@@ -234,11 +234,15 @@ above:
 
 ## Options panel polish (2026-09-06)
 
-- [ ] Open Bindings and Settings: charcoal panels remain readable over the
+- [ ] Open Bindings and Settings: warm stone panels remain readable over the
       scenery; the portrait, tabs and four ornaments still draw correctly.
+- [ ] The list, binding header, editor and Settings panel have inset metal
+      borders. Check corners and seams for clipping or white squares.
+- [ ] Binding rows have warm shaded plates, a visible selected state and clear
+      hover feedback. Scroll and collapse groups to check the taller rows.
 - [ ] Select a long spell name: the compact title and binding combination
       fit without touching the editor controls.
-- [ ] New binding sits beneath the list; Enabled and Delete sit beneath the
+- [ ] New binding is a compact button beneath the list; Enabled and Delete sit beneath the
       editor and do not cover the bottom corner ornaments.
 - [ ] Spell guidance, Conditions and the final dropdown do not overlap at
       your normal UI scale.

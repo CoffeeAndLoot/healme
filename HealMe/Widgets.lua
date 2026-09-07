@@ -137,25 +137,22 @@ function Widgets.Filigree(frame)
     end
 end
 
--- A nearly opaque charcoal plate keeps the scene out of reading surfaces.
+-- Blizzard's inset frame supplies real bevelled metal corners and edges.
+-- Warm stone stays visible beneath the shading instead of a flat black fill.
 function Widgets.Panel(parent)
-    local p = CreateFrame("Frame", nil, parent)
+    local p = CreateFrame("Frame", nil, parent, "InsetFrameTemplate")
+    if p.Bg then p.Bg:Hide() end
 
-    local bg = p:CreateTexture(nil, "BACKGROUND")
+    local bg = p:CreateTexture(nil, "BACKGROUND", nil, -2)
     bg:SetAllPoints()
-    bg:SetColorTexture(0.045, 0.047, 0.043, 0.96)
+    bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock")
+    bg:SetHorizTile(true)
+    bg:SetVertTile(true)
+    bg:SetVertexColor(0.65, 0.51, 0.36)
 
-    local function edge(point1, point2, w, h)
-        local t = p:CreateTexture(nil, "BORDER")
-        t:SetPoint(point1)
-        t:SetPoint(point2)
-        if w then t:SetWidth(w) else t:SetHeight(h) end
-        t:SetColorTexture(0.48, 0.41, 0.27, 0.28)
-    end
-    edge("TOPLEFT", "TOPRIGHT", nil, 1)
-    edge("BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
-    edge("TOPLEFT", "BOTTOMLEFT", 1, nil)
-    edge("TOPRIGHT", "BOTTOMRIGHT", 1, nil)
+    local shade = p:CreateTexture(nil, "BACKGROUND", nil, -1)
+    shade:SetAllPoints()
+    shade:SetColorTexture(0.06, 0.035, 0.015, 0.48)
     return p
 end
 
@@ -479,7 +476,7 @@ function Widgets.Window(name, title, width, height)
 
     local scene = Widgets.Atlas(content, "BACKGROUND", ATLAS.scene, -1)
     scene:SetAllPoints()
-    scene:SetVertexColor(0.45, 0.45, 0.45)
+    scene:SetVertexColor(0.8, 0.65, 0.48)
 
     -- The corners sit on their own frame above the content so nothing laid
     -- out inside can cover them.

@@ -37,7 +37,7 @@ local COMBAT_LABEL = { [""] = "Always", ["in"] = "In combat", out = "Out of comb
 local COMBAT_ORDER = { "", "in", "out" }
 
 local HEADER_HEIGHT = 24
-local ROW_HEIGHT = 40
+local ROW_HEIGHT = 46
 local LIST_WIDTH = 270
 local MARGIN = 20
 
@@ -210,9 +210,20 @@ local function newRow(index)
     local row = CreateFrame("Button", nil, content)
     row:SetSize(content:GetWidth(), ROW_HEIGHT)
 
+    local plate = row:CreateTexture(nil, "BACKGROUND", nil, -2)
+    plate:SetPoint("TOPLEFT", 3, -2)
+    plate:SetPoint("BOTTOMRIGHT", -3, 2)
+    plate:SetColorTexture(0.3, 0.25, 0.18, 0.55)
+
+    local edge = row:CreateTexture(nil, "BACKGROUND", nil, -1)
+    edge:SetPoint("TOPLEFT", 4, -2)
+    edge:SetPoint("TOPRIGHT", -4, -2)
+    edge:SetHeight(1)
+    edge:SetColorTexture(0.72, 0.58, 0.32, 0.3)
+
     row.sel = row:CreateTexture(nil, "BACKGROUND")
     row.sel:SetAllPoints()
-    row.sel:SetColorTexture(1, 0.82, 0, 0.1)
+    row.sel:SetColorTexture(0.85, 0.61, 0.12, 0.23)
     row.sel:Hide()
 
     row.bar = row:CreateTexture(nil, "BACKGROUND", nil, 1)
@@ -253,13 +264,13 @@ end
 local function buildEditor(page, list)
     -- A compact identity header leaves room for long spell names. Editing
     -- actions live in the footer, away from the title.
-    local header = CreateFrame("Frame", nil, page)
+    local header = W.Panel(page)
     header:SetPoint("TOPLEFT", list, "TOPRIGHT", 24, 0)
     header:SetPoint("RIGHT", -MARGIN, 0)
     header:SetHeight(62)
 
     ui.headerIcon = W.Icon(header, 42)
-    ui.headerIcon:SetPoint("TOPLEFT", 0, -4)
+    ui.headerIcon:SetPoint("TOPLEFT", 12, -10)
 
     ui.headerName = header:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     ui.headerName:SetPoint("TOPLEFT", ui.headerIcon, "TOPRIGHT", 14, -4)
@@ -475,8 +486,8 @@ local function buildBindingsPage(f)
         collapsed[record.key.button] = nil
         Options:Refresh()
     end)
-    ui.newButton:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -8)
-    ui.newButton:SetWidth(LIST_WIDTH)
+    ui.newButton:SetPoint("TOPRIGHT", list, "BOTTOMRIGHT", 0, -8)
+    ui.newButton:SetWidth(140)
 
     ui.deleteButton = W.Button(page, "Delete", 100, function()
         local _, index = find(selectedId)
