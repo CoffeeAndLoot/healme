@@ -140,8 +140,11 @@ steps above:
       the count stays visible while collapsed
 - [ ] The Bindings and Settings tabs switch pages; New binding and Delete only
       show on Bindings
-- [ ] The window has the round portrait, gold title bar and dark stone
-      background of a Blizzard panel, and the dropdowns match the game's own
+- [ ] The window has the round portrait, gold title bar, the dark scene and
+      gold filigree in all four corners like the Housing dashboard; the tabs,
+      dropdowns and group headers match the game's own
+- [ ] No white squares anywhere: a white square means an atlas name the
+      client does not know
 - [ ] The "Also target" toggle on the Settings tab changes behaviour immediately: with it on, a
       heal click also switches your target
 - [ ] Switching specialisation swaps the binding list, and the profile picker

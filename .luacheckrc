@@ -12,4 +12,7 @@ read_globals = {
     "InCombatLockdown", "RegisterAttributeDriver", "UnitName",
     "GetSpecialization", "GetSpecializationInfo",
     "C_Spell", "C_AddOns", "C_Timer", "LibStub",
+    -- Frame API used by the options panel and minimap button
+    "tinsert", "UISpecialFrames", "Minimap", "GameTooltip", "GetCursorPosition",
+    "ScrollUtil", "C_Texture", "CreateFramePool",
 }

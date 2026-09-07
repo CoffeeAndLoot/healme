@@ -218,7 +218,7 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 | `Minimap.lua` | The minimap button and its account-wide position. | Options |
 | `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
-| `Widgets.lua` | Constructors for the panel's controls, on Blizzard's own templates with a hand-built fallback for the dropdown. | none |
+| `Widgets.lua` | Constructors for the panel's controls and art, on Blizzard's own templates and atlases with plain fallbacks. | none |
 | `Options.lua` | A standalone portrait window: tabs, a grouped binding list, the editor, the settings page and the share window. | Bindings, Widgets |
 | `Serialize.lua` | Export/import strings, and the field-based codec that produces them. | none |
 
@@ -436,31 +436,39 @@ a healer is least able to diagnose it.
 A standalone movable window opened by `/healme`, by the minimap button, or
 from the addon compartment. Escape closes it.
 
-It is built on Blizzard's own templates so it reads as a built-in panel: a
-`ButtonFrameTemplate` portrait window with the HealMe icon in the ring, top
-tabs under the title bar, `InsetFrameTemplate` panes, `WowStyle1Dropdown`
-pickers and the slim modern scrollbar. No widget library is involved. The
-templates have been stable since 10.0 and 11.0, and the one reworked most
-recently, the dropdown, is constructed under `pcall` with a hand-built list as
-fallback, so a renamed template costs the look rather than the addon.
+It is built on Blizzard's own templates and art so it reads as a built-in
+panel, laid out after the Housing dashboard: a `PortraitFrameTemplate` window
+with the HealMe icon in the ring, the dashboard's `TabSystemTemplate` top tabs
+under the title bar, its dark scene atlas and gold filigree corners on the
+content area, `WowStyle1Dropdown` pickers and the slim modern scrollbar. Group
+headers use the quest log's collapse-bar atlas and plus/minus icons; icons sit
+in the dashboard's bevelled gold frame; headings carry its ornate divider. No
+widget library is involved. Every atlas name and anchor was taken from
+Blizzard's UI source rather than guessed, and each is set through a helper
+that checks `C_Texture.GetAtlasInfo` first, so a missing atlas leaves a gap
+rather than a white square. The dropdown and tab system are constructed under
+`pcall` with plain fallbacks, so a renamed template costs the look rather than
+the addon.
 
 Layout:
 
 - The tab strip holds **Bindings** and **Settings** on the left and the
   **profile picker** on the right, which switches profiles the same way
   `/healme profile <name>` does.
-- **Bindings** is two panes. The left is the binding list grouped by mouse
-  button, quest-log style: a collapsible header per button with a count, and
-  spellbook-style rows beneath showing the action's icon, its name in white,
-  and a gold subline of modifiers and conditions. Disabled bindings are dimmed
-  and say so in the subline. The right pane is the editor: a large header with
-  the icon, the action name and the combination in gold, an Enabled checkbox,
-  then the form (button, modifiers, action, spell or macro text) and an "Only
-  when" section with the three condition dropdowns. New binding and Delete sit
-  in the window's bottom bar.
-- **Settings** carries the **"Also target"** checkbox (§10), **"Show minimap
-  button"**, and Export and Import, which open the share window: a portrait
-  window with a selectable text box.
+- **Bindings** is two columns over the scene. The left is a translucent plate
+  holding the binding list grouped by mouse button, quest-log style: a
+  collapsible header per button with a count, and spellbook-style rows
+  beneath showing the action's icon, its name in white, and a gold subline of
+  modifiers and conditions. Disabled bindings are dimmed and say so in the
+  subline. New binding and Delete sit under the list. The right column leads
+  with a header straight on the scene, the way the dashboard names the house:
+  the icon at 58px in its gold frame, the action name large, the ornate rule,
+  the combination in gold, and an Enabled checkbox at the right. Beneath it a
+  plate carries the form (button, modifiers, action, spell or macro text) and
+  an "Only when" section with the three condition dropdowns.
+- **Settings** is one plate with sectioned headings: **"Also target"** (§10),
+  **"Show minimap button"**, and Export and Import, which open the share
+  window, a portrait window of the same style with a selectable text box.
 
 **A new binding is created disabled.** It lands on plain left click with no
 spell, and if it were live it would overwrite an existing left-click binding

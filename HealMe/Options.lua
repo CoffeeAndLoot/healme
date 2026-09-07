@@ -4,9 +4,9 @@ ns = ns or {}
 local Options = {}
 ns.Options = Options
 
--- A standalone portrait window in the style of Blizzard's own panels: tabs
--- under the title bar, dark insets, spellbook-style rows. Every control comes
--- from Widgets.lua.
+-- A standalone portrait window laid out like the Housing dashboard: tabs
+-- under the title bar, the dark scene with filigree corners, quest-log style
+-- group headers, spellbook-style rows. Every control comes from Widgets.lua.
 
 local BUTTON_LABEL = {
     BUTTON1   = "Left click",
@@ -36,9 +36,10 @@ local LIFE_ORDER = { "", "alive", "dead" }
 local COMBAT_LABEL = { [""] = "Always", ["in"] = "In combat", out = "Out of combat" }
 local COMBAT_ORDER = { "", "in", "out" }
 
-local HEADER_HEIGHT = 26
-local ROW_HEIGHT = 38
+local HEADER_HEIGHT = 24
+local ROW_HEIGHT = 40
 local LIST_WIDTH = 300
+local MARGIN = 20
 
 local W -- ns.Widgets, bound in Initialize
 
@@ -159,36 +160,9 @@ end
 -- Tabs
 ---------------------------------------------------------------------------
 
-local function buildTabs(f)
-    local function tab(index, text)
-        local t = CreateFrame("Button", "HealMeOptionsFrameTab" .. index, f,
-            "PanelTopTabButtonTemplate")
-        t:SetID(index)
-        t:SetText(text)
-        if PanelTemplates_TabResize then
-            pcall(PanelTemplates_TabResize, t, 16)
-        end
-        t:SetScript("OnClick", function()
-            Options:SelectTab(index)
-        end)
-        return t
-    end
-
-    f.Tabs = { tab(1, "Bindings"), tab(2, "Settings") }
-    if PanelTemplates_SetNumTabs then
-        PanelTemplates_SetNumTabs(f, #f.Tabs)
-    end
-end
-
 function Options:SelectTab(index)
-    local f = ui.frame
-    if PanelTemplates_SetTab then
-        PanelTemplates_SetTab(f, index)
-    end
     ui.bindingsPage:SetShown(index == 1)
     ui.settingsPage:SetShown(index == 2)
-    ui.newButton:SetShown(index == 1)
-    ui.deleteButton:SetShown(index == 1)
     self:Refresh()
 end
 
@@ -197,66 +171,31 @@ end
 ---------------------------------------------------------------------------
 
 local function buildList(page)
-    local inset = W.Inset(page)
-    inset:SetPoint("TOPLEFT", 0, 0)
-    inset:SetPoint("BOTTOMLEFT", 0, 0)
-    inset:SetWidth(LIST_WIDTH)
+    local panel = W.Panel(page)
+    panel:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+    panel:SetPoint("BOTTOMLEFT", MARGIN, MARGIN + 34)
+    panel:SetWidth(LIST_WIDTH)
 
-    local scroll = W.ScrollFrame(inset, LIST_WIDTH - 22)
+    local scroll = W.ScrollFrame(panel, LIST_WIDTH - 22)
     ui.listContent = scroll.content
     ui.headers = {}
     ui.rows = {}
 
     -- Shown when the profile holds nothing, so the empty pane invites action.
-    ui.listEmpty = inset:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+    ui.listEmpty = panel:CreateFontString(nil, "ARTWORK", "GameFontDisable")
     ui.listEmpty:SetPoint("CENTER")
     ui.listEmpty:SetWidth(220)
     ui.listEmpty:SetText("No bindings yet.\nPress New binding to add one.")
 
-    return inset
+    return panel
 end
 
 local function newHeader(index)
     local content = ui.listContent
-    local h = CreateFrame("Button", nil, content)
-    h:SetSize(content:GetWidth(), HEADER_HEIGHT)
-
-    local bg = h:CreateTexture(nil, "BACKGROUND")
-    bg:SetAllPoints()
-    bg:SetColorTexture(1, 1, 1, 0.06)
-
-    local top = h:CreateTexture(nil, "BORDER")
-    top:SetHeight(1)
-    top:SetPoint("TOPLEFT")
-    top:SetPoint("TOPRIGHT")
-    top:SetColorTexture(0, 0, 0, 0.6)
-
-    local bottom = h:CreateTexture(nil, "BORDER")
-    bottom:SetHeight(1)
-    bottom:SetPoint("BOTTOMLEFT")
-    bottom:SetPoint("BOTTOMRIGHT")
-    bottom:SetColorTexture(0, 0, 0, 0.6)
-
-    local hl = h:CreateTexture(nil, "HIGHLIGHT")
-    hl:SetAllPoints()
-    hl:SetColorTexture(1, 1, 1, 0.06)
-
-    h.text = h:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
-    h.text:SetPoint("LEFT", 10, 0)
-    h.text:SetJustifyH("LEFT")
-
-    h.count = h:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
-    h.count:SetPoint("LEFT", h.text, "RIGHT", 6, -1)
-
-    h.toggle = h:CreateTexture(nil, "ARTWORK")
-    h.toggle:SetSize(16, 16)
-    h.toggle:SetPoint("RIGHT", -8, 0)
-
-    h:SetScript("OnClick", function(self)
+    local h = W.ListHeader(content, content:GetWidth(), HEADER_HEIGHT, function(self)
         collapsed[self.button] = not collapsed[self.button]
         Options:Refresh()
     end)
-
     ui.headers[index] = h
     return h
 end
@@ -282,8 +221,8 @@ local function newRow(index)
     hl:SetAllPoints()
     hl:SetColorTexture(1, 1, 1, 0.06)
 
-    row.icon = W.Icon(row, 28)
-    row.icon:SetPoint("LEFT", 12, 0)
+    row.icon = W.Icon(row, 32)
+    row.icon:SetPoint("LEFT", 10, 0)
 
     row.name = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     row.name:SetPoint("TOPLEFT", row.icon, "TOPRIGHT", 10, -1)
@@ -307,9 +246,42 @@ local function newRow(index)
 end
 
 local function buildEditor(page, list)
-    local inset = W.Inset(page)
-    inset:SetPoint("TOPLEFT", list, "TOPRIGHT", 8, 0)
-    inset:SetPoint("BOTTOMRIGHT", 0, 0)
+    -- The header sits straight on the scene, the way the dashboard names
+    -- the house: the icon in its gold frame, the action's name large, the
+    -- ornate rule, and the combination in gold beneath. It is the one loud
+    -- element in the window.
+    local header = CreateFrame("Frame", nil, page)
+    header:SetPoint("TOPLEFT", list, "TOPRIGHT", 24, 0)
+    header:SetPoint("RIGHT", -MARGIN, 0)
+    header:SetHeight(76)
+
+    ui.headerIcon = W.Icon(header, 58)
+    ui.headerIcon:SetPoint("TOPLEFT", 0, -4)
+
+    ui.headerName = header:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
+    ui.headerName:SetPoint("TOPLEFT", ui.headerIcon, "TOPRIGHT", 14, -4)
+    ui.headerName:SetPoint("RIGHT", -110, 0)
+    ui.headerName:SetJustifyH("LEFT")
+    ui.headerName:SetWordWrap(false)
+
+    ui.headerRule = W.Divider(header, 188)
+    ui.headerRule:SetPoint("TOPLEFT", ui.headerName, "BOTTOMLEFT", -10, -4)
+
+    ui.headerCombo = header:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    ui.headerCombo:SetPoint("TOPLEFT", ui.headerName, "BOTTOMLEFT", 0, -10)
+    ui.headerCombo:SetJustifyH("LEFT")
+
+    ui.enabled = W.Checkbox(header, "Enabled", edit(function(r, value)
+        local previous = r.enabled
+        r.enabled = value
+        return function() r.enabled = previous end
+    end))
+    ui.enabled:SetPoint("TOPRIGHT", -64, -6)
+
+    -- The form on a dark plate beneath the header.
+    local inset = W.Panel(page)
+    inset:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
+    inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
     ui.editor = inset
 
     ui.emptyHint = inset:CreateFontString(nil, "ARTWORK", "GameFontDisable")
@@ -317,37 +289,9 @@ local function buildEditor(page, list)
     ui.emptyHint:SetWidth(280)
     ui.emptyHint:SetText("Pick a binding on the left to edit it.")
 
-    -- The header: the thing you bound, big, the way the housing dashboard
-    -- names the house. It is the one loud element in the window.
-    ui.headerIcon = W.Icon(inset, 40)
-    ui.headerIcon:SetPoint("TOPLEFT", 18, -18)
-
-    ui.headerName = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
-    ui.headerName:SetPoint("TOPLEFT", ui.headerIcon, "TOPRIGHT", 12, 0)
-    ui.headerName:SetPoint("RIGHT", -120, 0)
-    ui.headerName:SetJustifyH("LEFT")
-    ui.headerName:SetWordWrap(false)
-
-    ui.headerCombo = inset:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    ui.headerCombo:SetPoint("BOTTOMLEFT", ui.headerIcon, "BOTTOMRIGHT", 12, 0)
-    ui.headerCombo:SetJustifyH("LEFT")
-
-    ui.enabled = W.Checkbox(inset, "Enabled", edit(function(r, value)
-        local previous = r.enabled
-        r.enabled = value
-        return function() r.enabled = previous end
-    end))
-    ui.enabled:SetPoint("TOPRIGHT", -84, -24)
-
-    ui.headerRule = inset:CreateTexture(nil, "ARTWORK")
-    ui.headerRule:SetHeight(1)
-    ui.headerRule:SetPoint("TOPLEFT", ui.headerIcon, "BOTTOMLEFT", 0, -14)
-    ui.headerRule:SetPoint("RIGHT", -18, 0)
-    ui.headerRule:SetColorTexture(1, 0.82, 0, 0.25)
-
     -- Form rows: gold label in the left column, control in the right.
     local LABEL_X, CONTROL_X = 20, 130
-    local y = -92
+    local y = -18
     ui.fields = {}
 
     local function fieldLabel(text)
@@ -429,9 +373,8 @@ local function buildEditor(page, list)
     y = y - 44
 
     -- Conditions get their own heading, like a second section of a page.
-    ui.condHeading = W.Heading(inset, "Only when")
+    ui.condHeading = W.Heading(inset, "Only when", 188)
     ui.condHeading:SetPoint("TOPLEFT", LABEL_X, y)
-    ui.condHeading.rule:SetPoint("RIGHT", inset, "RIGHT", -18, 0)
     y = y - 36
 
     ui.condFields = {}
@@ -494,15 +437,16 @@ local function buildEditor(page, list)
     return inset
 end
 
-local function buildBindingsPage(f, area)
-    local page = CreateFrame("Frame", nil, f)
-    page:SetAllPoints(area)
+local function buildBindingsPage(f)
+    local page = CreateFrame("Frame", nil, f.content)
+    page:SetAllPoints()
     ui.bindingsPage = page
 
     local list = buildList(page)
     buildEditor(page, list)
 
-    ui.newButton = W.Button(f, "New binding", 120, function()
+    -- Under the list, kept right so they clear the corner scrollwork.
+    ui.newButton = W.Button(page, "New binding", 120, function()
         local list = bindings()
         local record = {
             id = ns.Bindings.NextId(list),
@@ -518,9 +462,9 @@ local function buildBindingsPage(f, area)
         collapsed[record.key.button] = nil
         Options:Refresh()
     end)
-    ui.newButton:SetPoint("BOTTOMLEFT", 10, 6)
+    ui.newButton:SetPoint("TOPRIGHT", list, "BOTTOMRIGHT", 0, -8)
 
-    ui.deleteButton = W.Button(f, "Delete", 100, function()
+    ui.deleteButton = W.Button(page, "Delete", 100, function()
         local _, index = find(selectedId)
         if index then
             table.remove(bindings(), index)
@@ -529,30 +473,30 @@ local function buildBindingsPage(f, area)
             Options:Refresh()
         end
     end)
-    ui.deleteButton:SetPoint("LEFT", ui.newButton, "RIGHT", 6, 0)
+    ui.deleteButton:SetPoint("RIGHT", ui.newButton, "LEFT", -6, 0)
 end
 
 ---------------------------------------------------------------------------
 -- Settings page
 ---------------------------------------------------------------------------
 
-local function buildSettingsPage(f, area)
-    local page = CreateFrame("Frame", nil, f)
-    page:SetAllPoints(area)
+local function buildSettingsPage(f)
+    local page = CreateFrame("Frame", nil, f.content)
+    page:SetAllPoints()
     page:Hide()
     ui.settingsPage = page
 
-    local inset = W.Inset(page)
-    inset:SetAllPoints()
+    local inset = W.Panel(page)
+    inset:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+    inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
 
-    local X = 24
-    local y = -20
+    local X = 30
+    local y = -24
 
     local function section(title)
-        local h = W.Heading(inset, title)
+        local h = W.Heading(inset, title, 260)
         h:SetPoint("TOPLEFT", X, y)
-        h.rule:SetPoint("RIGHT", inset, "RIGHT", -24, 0)
-        y = y - 34
+        y = y - 36
     end
 
     local function note(text)
@@ -601,31 +545,25 @@ end
 ---------------------------------------------------------------------------
 
 local function buildWindow()
-    local f = W.Window("HealMeOptionsFrame", "HealMe", 740, 560)
+    local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 544)
 
-    buildTabs(f)
+    -- Tabs and picker sit where the dashboard puts its own.
+    ui.tabs = W.Tabs(f, { "Bindings", "Settings" }, function(index)
+        Options:SelectTab(index)
+    end)
+    ui.tabs:SetPoint("BOTTOMLEFT", f.content, "TOPLEFT", 60, -1)
 
-    -- The content area sits under the tab strip and above the button bar.
-    local area = CreateFrame("Frame", nil, f)
-    area:SetPoint("TOPLEFT", 10, -64)
-    area:SetPoint("BOTTOMRIGHT", -10, 34)
-
-    f.Tabs[1]:SetPoint("BOTTOMLEFT", area, "TOPLEFT", 54, 1)
-    f.Tabs[2]:SetPoint("LEFT", f.Tabs[1], "RIGHT", 2, 0)
-
-    -- Profile picker on the right of the tab strip, where the housing
-    -- dashboard keeps its house picker.
-    ui.profile = W.Dropdown(f, 230, function() return ns.Core:ProfileNames() end, {},
+    ui.profile = W.Dropdown(f, 200, function() return ns.Core:ProfileNames() end, {},
         function() return ns.Core.profileName end,
         function(name)
             ns.Core:SetProfile(name)
             selectedId = nil
             ns.Core:NotifyChanged()
         end)
-    ui.profile:SetPoint("BOTTOMRIGHT", area, "TOPRIGHT", -2, 6)
+    ui.profile:SetPoint("TOPRIGHT", -10, -28)
 
-    buildBindingsPage(f, area)
-    buildSettingsPage(f, area)
+    buildBindingsPage(f)
+    buildSettingsPage(f)
 
     return f
 end
@@ -636,17 +574,17 @@ end
 
 function Options:ShowShare(mode)
     if not ui.share then
-        local s = W.Window("HealMeShareFrame", "", 480, 300)
+        local s = W.Window("HealMeShareFrame", "", 500, 340)
         s:SetFrameStrata("DIALOG")
 
-        s.hint = s:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
-        s.hint:SetPoint("TOPLEFT", 64, -34)
-        s.hint:SetPoint("RIGHT", -16, 0)
+        s.hint = s.content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        s.hint:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+        s.hint:SetPoint("RIGHT", -MARGIN, 0)
         s.hint:SetJustifyH("LEFT")
 
-        local inset = W.Inset(s)
-        inset:SetPoint("TOPLEFT", 10, -64)
-        inset:SetPoint("BOTTOMRIGHT", -10, 34)
+        local inset = W.Panel(s.content)
+        inset:SetPoint("TOPLEFT", s.hint, "BOTTOMLEFT", 0, -10)
+        inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN + 34)
 
         local scroll = W.ScrollFrame(inset, 430)
         local box = CreateFrame("EditBox", nil, scroll.content)
@@ -664,7 +602,7 @@ function Options:ShowShare(mode)
         inset:SetScript("OnMouseDown", function() box:SetFocus() end)
         s.box = box
 
-        s.action = W.Button(s, "", 140, function()
+        s.action = W.Button(s.content, "", 140, function()
             if s.mode == "import" then
                 local profile, err = ns.Serialize.Import(s.box:GetText(),
                     ns.Serialize.codec)
@@ -692,7 +630,7 @@ function Options:ShowShare(mode)
                 s.box:SetFocus()
             end
         end)
-        s.action:SetPoint("BOTTOMRIGHT", -10, 6)
+        s.action:SetPoint("TOPRIGHT", inset, "BOTTOMRIGHT", 0, -8)
 
         ui.share = s
     end
@@ -772,12 +710,11 @@ local function refreshList()
         h.text:SetText(BUTTON_LABEL[group.button] or group.button)
         h.count:SetText(tostring(#group.records))
         local isCollapsed = collapsed[group.button]
-        h.toggle:SetTexture(isCollapsed and "Interface\\Buttons\\UI-PlusButton-Up"
-            or "Interface\\Buttons\\UI-MinusButton-Up")
+        h:SetCollapsed(isCollapsed)
         h:ClearAllPoints()
         h:SetPoint("TOPLEFT", 0, -y)
         h:Show()
-        y = y + HEADER_HEIGHT
+        y = y + HEADER_HEIGHT + 2
 
         if not isCollapsed then
             for r = 1, #group.records do
@@ -899,7 +836,7 @@ end
 function Options:Initialize()
     W = ns.Widgets
     ui.frame = buildWindow()
-    self:SelectTab(1)
+    ui.tabs:Select(1)
     ns.Core:RegisterListener(function()
         Options:Refresh()
     end)
