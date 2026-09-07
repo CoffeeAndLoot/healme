@@ -169,6 +169,25 @@ return function(h, m)
             h.eq(out.bindings[1].action.spell, "100% Mana %5E Test")
         end)
 
+        h.it("round-trips a frames set in a stable order", function()
+            local text = real.encode({ bindings = { {
+                id = "b1", enabled = true,
+                key = { button = "BUTTON1" },
+                action = { kind = "spell", spell = "Rejuvenation" },
+                frames = { raid = true, party = true },
+            } }, settings = {} })
+            h.truthy(text:find("^party,raid$") or text:find("%^party,raid$"),
+                "frames field should read party,raid: " .. text)
+            local back = real.decode(text).bindings[1]
+            h.truthy(back.frames.party and back.frames.raid)
+            h.falsy(back.frames.player)
+        end)
+
+        h.it("decodes a string from before the frames field as every frame", function()
+            local back = real.decode("s^0~b^BUTTON1^^spell^Rejuvenation^^^^^1").bindings[1]
+            h.eq(back.frames, nil)
+        end)
+
         h.it("round-trips a disabled binding", function()
             local out = roundTrip({ bindings = { {
                 enabled = false,

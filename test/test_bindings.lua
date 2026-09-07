@@ -89,6 +89,15 @@ return function(h, m)
             }), deps))
         end)
 
+        h.it("accepts a frames set of known kinds and rejects the rest", function()
+            h.truthy(Bindings.Validate(record({ frames = { party = true, raid = true } }), deps))
+            h.falsy(Bindings.Validate(record({ frames = { grid = true } }), deps))
+            h.falsy(Bindings.Validate(record({ frames = {} }), deps))
+            h.falsy(Bindings.Validate(record({ frames = "party" }), deps))
+            -- A structural fault, so it is refused even on a disabled binding.
+            h.falsy(Bindings.Validate(record({ enabled = false, frames = {} }), deps))
+        end)
+
         h.it("rejects aliveOnly and deadOnly together", function()
             local ok = Bindings.Validate(record({
                 conditions = { aliveOnly = true, deadOnly = true },
@@ -111,6 +120,21 @@ return function(h, m)
                 action = { kind = "target" },
                 conditions = { unitFilter = "harm" },
             }), deps))
+        end)
+    end)
+
+    h.describe("Bindings.FrameAllowed", function()
+        h.it("allows every class when no frames are set", function()
+            h.truthy(Bindings.FrameAllowed(record(), "raid"))
+            h.truthy(Bindings.FrameAllowed(record(), "other"))
+        end)
+
+        h.it("allows only the classes in the set", function()
+            local r = record({ frames = { party = true, raid = true } })
+            h.truthy(Bindings.FrameAllowed(r, "party"))
+            h.truthy(Bindings.FrameAllowed(r, "raid"))
+            h.falsy(Bindings.FrameAllowed(r, "player"))
+            h.falsy(Bindings.FrameAllowed(r, "other"))
         end)
     end)
 

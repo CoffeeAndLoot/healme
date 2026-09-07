@@ -7,6 +7,8 @@ local modules = {
     Compiler  = "HealMe/Compiler.lua",
     Bindings  = "HealMe/Bindings.lua",
     Serialize = "HealMe/Serialize.lua",
+    Registry  = "HealMe/Registry.lua",
+    Secure    = "HealMe/Secure.lua",
 }
 
 local loaded = {}
@@ -23,6 +25,7 @@ local suites = {
     "test/test_compiler.lua",
     "test/test_bindings.lua",
     "test/test_serialize.lua",
+    "test/test_registry.lua",
 }
 
 for i = 1, #suites do

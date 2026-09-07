@@ -36,6 +36,11 @@ local LIFE_ORDER = { "", "alive", "dead" }
 local COMBAT_LABEL = { [""] = "Always", ["in"] = "In combat", out = "Out of combat" }
 local COMBAT_ORDER = { "", "in", "out" }
 
+local FRAME_LABEL = {
+    player = "Player", target = "Target", focus = "Focus", pet = "Pet",
+    party = "Party", raid = "Raid", other = "Other addon frames",
+}
+
 local HEADER_HEIGHT = 24
 local ROW_HEIGHT = 46
 local LIST_WIDTH = 270
@@ -97,6 +102,24 @@ local function comboText(key)
     return mods .. " + " .. button
 end
 
+-- "Party, Raid" for a limited binding, nil for one that applies everywhere.
+local function framesText(frames)
+    if not frames then
+        return nil
+    end
+    local names = {}
+    for i = 1, #ns.Bindings.FRAMES do
+        local class = ns.Bindings.FRAMES[i]
+        if frames[class] then
+            names[#names + 1] = FRAME_LABEL[class] or class
+        end
+    end
+    if #names == 0 then
+        return nil
+    end
+    return table.concat(names, ", ")
+end
+
 -- The gold subline under a list row: modifiers, then conditions in words.
 local function detailText(record)
     local parts = {}
@@ -111,6 +134,10 @@ local function detailText(record)
         if c.deadOnly then parts[#parts + 1] = "dead" end
         if c.combat == true then parts[#parts + 1] = "in combat" end
         if c.combat == false then parts[#parts + 1] = "out of combat" end
+    end
+    local frames = framesText(record.frames)
+    if frames then
+        parts[#parts + 1] = "on " .. frames
     end
     if record.enabled == false then
         parts[#parts + 1] = "disabled"
@@ -407,6 +434,38 @@ local function buildEditor(page, list)
     end), function() Options:Refresh() end)
     ui.macro:SetPoint("TOPLEFT", CONTROL_X + 6, y)
     y = y - 54
+
+    -- Which frames the binding fires on. Orthogonal to the conditions, and
+    -- meaningful for every action kind, so it sits above that section.
+    fieldLabel("On frames")
+    local editFrames = edit(function(r, change)
+        local previous = r.frames
+        local set = {}
+        for i = 1, #ns.Bindings.FRAMES do
+            local class = ns.Bindings.FRAMES[i]
+            if ns.Bindings.FrameAllowed(r, class) then
+                set[class] = true
+            end
+        end
+        set[change.class] = change.on or nil
+        -- Every kind ticked is the same as no limit; none ticked is refused
+        -- by Validate, so the revert puts the box back.
+        local count = 0
+        for _ in pairs(set) do count = count + 1 end
+        r.frames = (count < #ns.Bindings.FRAMES and set) or nil
+        return function() r.frames = previous end
+    end)
+    ui.frames = place(W.MultiDropdown(inset, 240, ns.Bindings.FRAMES, FRAME_LABEL,
+        function(class)
+            local r = selected()
+            return r ~= nil and ns.Bindings.FrameAllowed(r, class)
+        end,
+        function(class, on) editFrames({ class = class, on = on }) end,
+        function()
+            local r = selected()
+            return (r and framesText(r.frames)) or "All frames"
+        end))
+    y = y - 32
 
     -- Conditions get their own heading, like a second section of a page.
     ui.condHeading = W.Heading(inset, "Conditions", 340)
@@ -829,6 +888,7 @@ local function refreshEditor()
     ui.alt:SetChecked(record.key.alt and true or false)
     ui.button:Refresh()
     ui.kind:Refresh()
+    ui.frames:Refresh()
 
     local isSpell = record.action.kind == "spell"
     local isMacro = record.action.kind == "macro"

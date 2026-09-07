@@ -48,7 +48,10 @@ end
 --
 --   records separated by  ~
 --   fields  separated by  ^
---   binding: b^button^mods^kind^spell^macrotext^unitFilter^life^combat^enabled
+--   binding: b^button^mods^kind^spell^macrotext^unitFilter^life^combat^enabled^frames
+--
+-- `frames` is a comma list of frame kinds, empty for every frame. Strings
+-- from before the field was added decode without it, meaning every frame.
 --   settings: s^alsoTarget
 --
 -- Any character that would confuse the parse is percent-escaped, so macro text
@@ -101,6 +104,22 @@ local function boolField(value)
     return value and "1" or "0"
 end
 
+-- The classes in a frames set, in Bindings.FRAMES order for a stable string.
+local function frameList(frames)
+    local list = {}
+    if not frames then
+        return list
+    end
+    local order = (ns.Bindings and ns.Bindings.FRAMES)
+        or { "player", "target", "focus", "pet", "party", "raid", "other" }
+    for i = 1, #order do
+        if frames[order[i]] then
+            list[#list + 1] = order[i]
+        end
+    end
+    return list
+end
+
 local function encodeBinding(record)
     local key = record.key or {}
     local action = record.action or {}
@@ -136,6 +155,7 @@ local function encodeBinding(record)
         life,
         combat,
         boolField(record.enabled ~= false),
+        table.concat(frameList(record.frames), ","),
     }, FIELD_SEP)
 end
 
@@ -177,11 +197,18 @@ local function decodeBinding(fields)
         end
     end
 
+    local frames = nil
+    for class in (fields[11] or ""):gmatch("[^,]+") do
+        frames = frames or {}
+        frames[class] = true
+    end
+
     return {
         enabled = (fields[10] or "1") == "1",
         key = key,
         action = action,
         conditions = conditions,
+        frames = frames,
     }
 end
 

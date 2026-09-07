@@ -169,6 +169,25 @@ steps above:
       re-enable it. Expect the conflict message and the binding to stay
       disabled.
 
+## Frame scope
+
+- [ ] On a binding, open "On frames" and untick everything but Party and
+      Raid. The button reads "Party, Raid" and the list subline says "on
+      Party, Raid"
+- [ ] With that scope, the bind fires on a party or raid frame and does
+      nothing on your own player frame or on the target frame
+- [ ] Tick Player back on: the bind fires on the player frame immediately,
+      no reload
+- [ ] Try to untick the last remaining kind: expect "a binding limited to
+      frames needs at least one kind" and the box to stay ticked
+- [ ] Tick every kind: the button reads "All frames" again
+- [ ] Scope a wheel binding to Raid only. Scroll over a raid frame: fires.
+      Scroll over the player frame: nothing, and the wheel zooms the camera
+      as normal
+- [ ] Export, then import the string: the scope survives the round trip
+- [ ] Import a string made before this version (no frames field): every
+      binding applies to all frames
+
 ## Task 12 — export and import
 
 - [ ] Export on the Settings tab shows a string beginning "!HM1!"

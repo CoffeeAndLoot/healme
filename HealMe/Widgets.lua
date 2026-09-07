@@ -346,6 +346,54 @@ function Widgets.Dropdown(parent, width, items, labels, current, onSelect)
     return d
 end
 
+-- A dropdown whose menu is a set of checkboxes that stays open while you
+-- tick. `isOn(value)` reports a box; `toggle(value, on)` changes one; the
+-- button reads `summary()`. Call :Refresh() after the set changes.
+function Widgets.MultiDropdown(parent, width, order, labels, isOn, toggle, summary)
+    local ok, d = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    if not ok or not d or not d.SetupMenu or not d.OverrideText then
+        -- Without the modern menu, fall back to cycling single choices: a
+        -- plain list of "All" plus each kind on its own.
+        local values = { "" }
+        local names = { [""] = "All" }
+        for i = 1, #order do
+            values[#values + 1] = order[i]
+            names[order[i]] = labels[order[i]] or order[i]
+        end
+        return Widgets.Dropdown(parent, width, values, names,
+            function()
+                local only = nil
+                for i = 1, #order do
+                    if isOn(order[i]) then
+                        if only then return "" end
+                        only = order[i]
+                    end
+                end
+                return only or ""
+            end,
+            function(value)
+                for i = 1, #order do
+                    toggle(order[i], value == "" or order[i] == value)
+                end
+            end)
+    end
+
+    d:SetWidth(width)
+    d:SetupMenu(function(_, root)
+        for i = 1, #order do
+            local value = order[i]
+            root:CreateCheckbox(labels[value] or value,
+                function() return isOn(value) end,
+                function() toggle(value, not isOn(value)) end)
+        end
+    end)
+
+    d.Refresh = function(self)
+        self:OverrideText(summary())
+    end
+    return d
+end
+
 ---------------------------------------------------------------------------
 -- Spellbook picker
 ---------------------------------------------------------------------------

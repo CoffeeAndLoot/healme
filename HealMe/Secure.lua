@@ -43,6 +43,9 @@ function Secure:Compile()
     for i = 1, #bindings do
         local compiled = Compiler.Compile(bindings[i], settings)
         for j = 1, #compiled do
+            -- Carries the binding's frame scope so ApplyToFrame can leave
+            -- the attribute off frames the binding is not for.
+            compiled[j].frames = bindings[i].frames
             attrs[#attrs + 1] = compiled[j]
         end
     end
@@ -131,9 +134,19 @@ function Secure:ApplyToFrame(frame)
             end
         end
 
+        -- The frame's class, for the wheel snippet to read.
+        local class = ns.Registry:FrameClass(frame)
+        frame:SetAttribute("healme-frame", class)
+
+        -- A binding scoped away from this frame has its attribute cleared,
+        -- not skipped, so narrowing a binding's scope takes effect.
         for i = 1, #self.attributes do
             local attr = self.attributes[i]
-            frame:SetAttribute(attr.name, attr.value)
+            if ns.Bindings.FrameAllowed(attr, class) then
+                frame:SetAttribute(attr.name, attr.value)
+            else
+                frame:SetAttribute(attr.name, nil)
+            end
         end
 
         self:WrapFrame(frame)
@@ -160,6 +173,7 @@ function Secure:ClearFrame(frame)
         for name in pairs(written) do
             frame:SetAttribute(name, nil)
         end
+        frame:SetAttribute("healme-frame", nil)
 
         local header = ns.Registry.header
         if header then
@@ -260,7 +274,9 @@ local function wheelBindings()
     local Compiler = ns.Compiler
     local bindings = ns.Core:Bindings()
 
-    local keybinds, identifiers = {}, {}
+    -- scopes[i] is "" for every frame, or a comma-wrapped class list such as
+    -- ",party,raid," that the snippet can search with a plain find.
+    local keybinds, identifiers, scopes = {}, {}, {}
     for i = 1, #bindings do
         local record = bindings[i]
         if record.enabled ~= false then
@@ -268,11 +284,26 @@ local function wheelBindings()
             if keybind then
                 keybinds[#keybinds + 1] = keybind
                 identifiers[#identifiers + 1] = Compiler.ClickIdentifier(record.key)
+                scopes[#scopes + 1] = Secure.ScopeString(record.frames)
             end
         end
     end
 
-    return keybinds, identifiers
+    return keybinds, identifiers, scopes
+end
+
+function Secure.ScopeString(frames)
+    if not frames then
+        return ""
+    end
+    local list = {}
+    for i = 1, #ns.Bindings.FRAMES do
+        local class = ns.Bindings.FRAMES[i]
+        if frames[class] then
+            list[#list + 1] = class
+        end
+    end
+    return "," .. table.concat(list, ",") .. ","
 end
 
 function Secure:ApplyWheel()
@@ -296,22 +327,26 @@ function Secure:ApplyWheel()
             proxy:SetAttribute(attr.name, attr.value)
         end
 
-        local keybinds, identifiers = wheelBindings()
+        local keybinds, identifiers, scopes = wheelBindings()
 
         header:SetFrameRef("healme_proxy", proxy)
         header:Execute(([[
             proxy = self:GetFrameRef("healme_proxy")
             keybinds = newtable(%s)
             identifiers = newtable(%s)
-        ]]):format(quoteList(keybinds), quoteList(identifiers)))
+            scopes = newtable(%s)
+        ]]):format(quoteList(keybinds), quoteList(identifiers), quoteList(scopes)))
 
         header:SetAttribute("healme_setup", [[
             if currentButton ~= nil then
                 control:RunFor(currentButton, control:GetAttribute("healme_clear"))
             end
             currentButton = self
+            local class = "," .. (self:GetAttribute("healme-frame") or "other") .. ","
             for i = 1, #keybinds do
-                self:SetBindingClick(true, keybinds[i], proxy, identifiers[i])
+                if scopes[i] == "" or strfind(scopes[i], class, 1, true) then
+                    self:SetBindingClick(true, keybinds[i], proxy, identifiers[i])
+                end
             end
         ]])
 

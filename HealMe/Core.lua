@@ -151,6 +151,13 @@ function Core:CopyProfileFrom(sourceName)
         local key = record.key or {}
         local action = record.action or {}
         local conditions = record.conditions
+        local frames = nil
+        for class, on in pairs(record.frames or {}) do
+            if on then
+                frames = frames or {}
+                frames[class] = true
+            end
+        end
 
         copy.bindings[i] = {
             id = "b" .. i,
@@ -172,6 +179,7 @@ function Core:CopyProfileFrom(sourceName)
                 deadOnly = conditions.deadOnly,
                 combat = conditions.combat,
             } or nil,
+            frames = frames,
         }
     end
 

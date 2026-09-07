@@ -23,6 +23,24 @@ end
 
 local MACRO_MAX = 255
 
+-- The kinds of frame a binding can be limited to. Registry sorts every frame
+-- into exactly one of these; a binding with no `frames` set applies to all.
+Bindings.FRAMES = { "player", "target", "focus", "pet", "party", "raid", "other" }
+
+local VALID_FRAME = {}
+for i = 1, #Bindings.FRAMES do
+    VALID_FRAME[Bindings.FRAMES[i]] = true
+end
+
+-- Whether a binding applies to a frame of the given class.
+function Bindings.FrameAllowed(record, class)
+    local frames = record and record.frames
+    if not frames then
+        return true
+    end
+    return frames[class] and true or false
+end
+
 function Bindings.KeySignature(key)
     if not key or not VALID_BUTTON[key.button] then
         return nil
@@ -61,6 +79,23 @@ function Bindings.Validate(record, deps)
     local action = record.action
     if type(action) ~= "table" or not VALID_KIND[action.kind] then
         return false, "unknown action kind: " .. tostring(action and action.kind)
+    end
+
+    local frames = record.frames
+    if frames ~= nil then
+        if type(frames) ~= "table" then
+            return false, "frames must be a set of frame kinds"
+        end
+        local any = false
+        for class, on in pairs(frames) do
+            if not VALID_FRAME[class] then
+                return false, "unknown frame kind: " .. tostring(class)
+            end
+            if on then any = true end
+        end
+        if not any then
+            return false, "a binding limited to frames needs at least one kind"
+        end
     end
 
     local conditions = record.conditions

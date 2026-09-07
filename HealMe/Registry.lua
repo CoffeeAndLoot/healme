@@ -8,8 +8,48 @@ ns.Registry = Registry
 -- discarded frame can be collected instead of staying registered forever.
 local frames = setmetatable({}, { __mode = "k" })
 
+-- Each registered frame's class, from Bindings.FRAMES, decided once at
+-- registration.
+local classes = setmetatable({}, { __mode = "k" })
+
 local function errorhandler(err)
     return geterrorhandler()(err)
+end
+
+-- Sorts a frame into a class by its global name. Blizzard's names are stable;
+-- anything a third-party addon registers is "other", since raid grids
+-- reshuffle their units too often to sort them any finer.
+local CLASS_BY_NAME = {
+    PlayerFrame = "player",
+    TargetFrame = "target", TargetFrameToT = "target",
+    FocusFrame = "focus", FocusFrameToT = "focus",
+    PetFrame = "pet",
+}
+
+local CLASS_BY_PREFIX = {
+    { "^PartyFrame", "party" },
+    { "^CompactPartyFrame", "party" },
+    { "^CompactRaidFrame", "raid" },
+    { "^CompactRaidGroup", "raid" },
+}
+
+function Registry.ClassifyName(name)
+    if type(name) ~= "string" then
+        return "other"
+    end
+    if CLASS_BY_NAME[name] then
+        return CLASS_BY_NAME[name]
+    end
+    for i = 1, #CLASS_BY_PREFIX do
+        if name:find(CLASS_BY_PREFIX[i][1]) then
+            return CLASS_BY_PREFIX[i][2]
+        end
+    end
+    return "other"
+end
+
+function Registry:FrameClass(frame)
+    return classes[frame] or "other"
 end
 
 local function safecall(func, ...)
@@ -43,6 +83,8 @@ function Registry:Register(frame)
         return
     end
     frames[frame] = true
+    local name = frame.GetName and frame:GetName()
+    classes[frame] = Registry.ClassifyName(name)
     safecall(self.onRegister, self, frame)
 end
 

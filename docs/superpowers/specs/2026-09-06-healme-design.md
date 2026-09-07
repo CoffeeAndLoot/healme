@@ -187,6 +187,14 @@ attribute set is applied unchanged to every registered frame**. No per-frame
 unit wiring, no recompilation when a frame's unit changes, no work at all when
 the raid reshuffles.
 
+A binding may carry a `frames` set naming which kinds of frame it fires on
+(§13). That does not change the unit token: `Secure` still writes the same
+compiled attributes, but on a frame outside the set it clears the binding's
+attribute instead. `Registry` sorts each frame into one class at registration,
+by its global name (player, target, focus, pet, party, raid, or other for
+anything a third-party addon registers), and `Secure` stamps that class on the
+frame as `healme-frame` so the wheel snippet can honour the same scope.
+
 This applies to all five action kinds: `type="spell"` and `type="macro"` use
 `@mouseover` / `unit="mouseover"`, and `type="target"`, `type="focus"`,
 `type="togglemenu"` read the button's `unit` attribute, which is likewise the
@@ -471,6 +479,9 @@ Layout:
   inline; choosing one fills the field and saves through the same validation
   as typing. Passives, off-spec spells and flyouts are left out. The field
   stays the value, so a spell the book does not list can still be typed.
+  Below it, **On frames** is a checkbox menu of frame kinds; the button reads
+  "All frames" or the ticked kinds. Every kind ticked is stored as no limit,
+  and Validate refuses an empty set, so the last box cannot be unticked.
 - **Settings** is one plate with sectioned headings: **"Also target"** (§10),
   **"Show minimap button"**, and Export and Import, which open the share
   window, a portrait window of the same style with a selectable text box.
@@ -599,9 +610,6 @@ no donation solicitation.
 
 Not built now, with a clear seam if ever wanted:
 
-- Per-frame-type binding overrides (different binds on the target frame than on
-  raid frames). The binding record would gain a frame-type filter and `Secure`
-  would apply per-group attribute sets; nothing else changes.
 - A HealMe-drawn healing grid. It would consume `Secure` exactly as Blizzard's
   frames do, via `ClickCastFrames`.
 - Blizzard-keybind-style bindings that fire without a frame under the cursor.
