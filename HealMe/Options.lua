@@ -245,7 +245,7 @@ end
 
 local function buildWindow()
     local f = CreateFrame("Frame", "HealMeOptionsFrame", UIParent, "BackdropTemplate")
-    f:SetSize(680, 460)
+    f:SetSize(680, 500)
     f:SetPoint("CENTER")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -274,14 +274,19 @@ local function buildWindow()
     end)
     ui.alsoTarget:SetPoint("TOPLEFT", 12, -52)
 
+    ui.minimap = checkbox(f, "Show minimap button", function(value)
+        ns.MinimapButton:SetHidden(not value)
+    end)
+    ui.minimap:SetPoint("TOPLEFT", 12, -78)
+
     local hint = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
-    hint:SetPoint("TOPLEFT", ui.alsoTarget, "BOTTOMLEFT", 4, -2)
+    hint:SetPoint("TOPLEFT", ui.minimap, "BOTTOMLEFT", 4, -4)
     hint:SetText("Bindings fire on whichever unit frame is under your cursor.")
 
     ---------------------------------------------------------------- list
     local listBg = CreateFrame("Frame", nil, f, "BackdropTemplate")
-    listBg:SetPoint("TOPLEFT", 12, -100)
-    listBg:SetSize(280, 310)
+    listBg:SetPoint("TOPLEFT", 12, -128)
+    listBg:SetSize(280, 306)
     backdrop(listBg, 0.4)
 
     local scroll = CreateFrame("ScrollFrame", "HealMeBindingScroll", listBg,
@@ -576,6 +581,7 @@ function Options:Refresh()
 
     ui.profile:SetText("Profile: " .. tostring(ns.Core.profileName))
     ui.alsoTarget:SetChecked(ns.Core:Settings().alsoTarget and true or false)
+    ui.minimap:SetChecked(not ns.MinimapButton:IsHidden())
 
     local list = bindings()
 

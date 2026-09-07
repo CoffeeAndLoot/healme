@@ -247,7 +247,22 @@ function Core:OnAddonLoaded()
 
     HealMeDB.profiles = HealMeDB.profiles or {}
 
+    -- Account-wide UI state, deliberately outside the profiles. Where the
+    -- minimap button sits is a property of the interface, not of a binding set,
+    -- and it should not jump when the player changes specialisation.
+    HealMeDB.ui = HealMeDB.ui or {}
+    if HealMeDB.ui.minimapAngle == nil then
+        HealMeDB.ui.minimapAngle = 200
+    end
+    if HealMeDB.ui.minimapHidden == nil then
+        HealMeDB.ui.minimapHidden = false
+    end
+
     self:SetProfile(self:ProfileName())
+end
+
+function Core:UISettings()
+    return HealMeDB.ui
 end
 
 function Core:OnLogin()
@@ -259,6 +274,10 @@ function Core:OnLogin()
 
     if ns.Options and ns.Options.Initialize then
         ns.Options:Initialize()
+    end
+
+    if ns.MinimapButton and ns.MinimapButton.Initialize then
+        ns.MinimapButton:Initialize()
     end
 end
 

@@ -13,4 +13,5 @@ Registry.lua
 Secure.lua
 Serialize.lua
 Options.lua
+Minimap.lua
 Core.lua
