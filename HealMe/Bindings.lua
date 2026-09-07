@@ -32,6 +32,21 @@ for i = 1, #Bindings.FRAMES do
     VALID_FRAME[Bindings.FRAMES[i]] = true
 end
 
+-- The classes in a frames set, in FRAMES order, so every rendering of a
+-- scope (list subline, export string, wheel snippet) agrees.
+function Bindings.FrameList(frames)
+    local list = {}
+    if not frames then
+        return list
+    end
+    for i = 1, #Bindings.FRAMES do
+        if frames[Bindings.FRAMES[i]] then
+            list[#list + 1] = Bindings.FRAMES[i]
+        end
+    end
+    return list
+end
+
 -- Whether a binding applies to a frame of the given class.
 function Bindings.FrameAllowed(record, class)
     local frames = record and record.frames

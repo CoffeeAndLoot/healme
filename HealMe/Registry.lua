@@ -4,13 +4,11 @@ ns = ns or {}
 local Registry = {}
 ns.Registry = Registry
 
--- Weak-keyed so a frame addon's teardown does not leak (design spec §15): a
--- discarded frame can be collected instead of staying registered forever.
+-- Registered frame -> its class from Bindings.FRAMES, decided once at
+-- registration. Weak-keyed so a frame addon's teardown does not leak
+-- (design spec §15): a discarded frame can be collected instead of staying
+-- registered forever.
 local frames = setmetatable({}, { __mode = "k" })
-
--- Each registered frame's class, from Bindings.FRAMES, decided once at
--- registration.
-local classes = setmetatable({}, { __mode = "k" })
 
 local function errorhandler(err)
     return geterrorhandler()(err)
@@ -64,7 +62,7 @@ function Registry.Acceptable(frame)
 end
 
 function Registry:FrameClass(frame)
-    return classes[frame] or "other"
+    return frames[frame] or "other"
 end
 
 local function safecall(func, ...)
@@ -100,9 +98,8 @@ function Registry:Register(frame)
     if not Registry.Acceptable(frame) then
         return
     end
-    frames[frame] = true
     local name = frame.GetName and frame:GetName()
-    classes[frame] = Registry.ClassifyName(name)
+    frames[frame] = Registry.ClassifyName(name)
     safecall(self.onRegister, self, frame)
 end
 

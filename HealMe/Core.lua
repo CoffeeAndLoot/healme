@@ -169,11 +169,9 @@ function Core:CopyProfileFrom(sourceName)
         local action = record.action or {}
         local conditions = record.conditions
         local frames = nil
-        for class, on in pairs(record.frames or {}) do
-            if on then
-                frames = frames or {}
-                frames[class] = true
-            end
+        for class in pairs(record.frames or {}) do
+            frames = frames or {}
+            frames[class] = true
         end
 
         copy.bindings[i] = {
@@ -248,7 +246,7 @@ function Core:CreateProfile(name)
     end
     self:SetProfile(clean)
     self:NotifyChanged()
-    return true
+    return true, clean
 end
 
 function Core:SwitchProfile(name)
@@ -271,7 +269,7 @@ function Core:RenameProfile(old, new)
         return false, "no profile named " .. tostring(old)
     end
     if clean == old then
-        return true
+        return true, clean
     end
     if HealMeDB.profiles[clean] then
         return false, "a profile named " .. clean .. " already exists"
@@ -283,7 +281,7 @@ function Core:RenameProfile(old, new)
         self.profileName = clean
     end
     self:NotifyChanged()
-    return true
+    return true, clean
 end
 
 -- The active profile cannot be deleted: something has to hold the bindings
@@ -340,17 +338,23 @@ end
 -- default when the slot is empty or names a profile that no longer exists.
 function Core.ResolveProfile(rules, groupType, default, exists)
     local wanted = rules and rules[groupType]
-    if wanted and (not exists or exists(wanted)) then
+    if wanted and exists(wanted) then
         return wanted
     end
     return default
 end
 
+local function profileExists(name)
+    return HealMeDB.profiles[name] ~= nil
+end
+
 -- Applies the rule for the current spec and group. Returns the profile
 -- name chosen and whether that meant a switch.
 function Core:AutoSwitch()
-    local name = Core.ResolveProfile(self:Rules(), self:GroupType(), self:ProfileName(),
-        function(candidate) return HealMeDB.profiles[candidate] ~= nil end)
+    local default = self:ProfileName()
+    HealMeDB.rules = HealMeDB.rules or {}
+    local rules = HealMeDB.rules[default]
+    local name = Core.ResolveProfile(rules, self:GroupType(), default, profileExists)
     if name == self.profileName then
         return name, false
     end
@@ -457,7 +461,6 @@ function Core:OnAddonLoaded()
     -- minimap button sits is a property of the interface, not of a binding set,
     -- and it should not jump when the player changes specialisation.
     HealMeDB.ui = HealMeDB.ui or {}
-    HealMeDB.rules = HealMeDB.rules or {}
     if HealMeDB.ui.minimapAngle == nil then
         HealMeDB.ui.minimapAngle = 200
     end

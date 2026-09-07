@@ -13,6 +13,7 @@ local unregisterQueue = {}
 local applyAllQueued = false
 
 Secure.attributes = {}
+Secure.currentNames = {}
 
 local function errorhandler(err)
     return geterrorhandler()(err)
@@ -51,6 +52,10 @@ function Secure:Compile()
     end
 
     self.attributes = attrs
+    self.currentNames = {}
+    for i = 1, #attrs do
+        self.currentNames[attrs[i].name] = true
+    end
     return attrs
 end
 
@@ -124,12 +129,8 @@ function Secure:ApplyToFrame(frame)
 
         -- Clear anything we wrote previously but no longer compile to, so a
         -- deleted binding stops firing.
-        local current = {}
-        for i = 1, #self.attributes do
-            current[self.attributes[i].name] = true
-        end
         for name in pairs(written) do
-            if not current[name] then
+            if not self.currentNames[name] then
                 frame:SetAttribute(name, nil)
             end
         end
@@ -292,23 +293,11 @@ local function wheelBindings()
     return keybinds, identifiers, scopes
 end
 
--- On the desktop runner each module loads with its own namespace, so fall
--- back to a local copy of the class order rather than reaching for Bindings.
-local FRAME_ORDER = { "player", "target", "focus", "pet", "party", "raid", "other" }
-
 function Secure.ScopeString(frames)
     if not frames then
         return ""
     end
-    local order = (ns.Bindings and ns.Bindings.FRAMES) or FRAME_ORDER
-    local list = {}
-    for i = 1, #order do
-        local class = order[i]
-        if frames[class] then
-            list[#list + 1] = class
-        end
-    end
-    return "," .. table.concat(list, ",") .. ","
+    return "," .. table.concat(ns.Bindings.FrameList(frames), ",") .. ","
 end
 
 function Secure:ApplyWheel()

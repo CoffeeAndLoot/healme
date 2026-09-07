@@ -109,15 +109,12 @@ local function framesText(frames)
     if not frames then
         return nil
     end
-    local names = {}
-    for i = 1, #ns.Bindings.FRAMES do
-        local class = ns.Bindings.FRAMES[i]
-        if frames[class] then
-            names[#names + 1] = FRAME_LABEL[class] or class
-        end
-    end
+    local names = ns.Bindings.FrameList(frames)
     if #names == 0 then
         return nil
+    end
+    for i = 1, #names do
+        names[i] = FRAME_LABEL[names[i]] or names[i]
     end
     return table.concat(names, ", ")
 end
@@ -182,11 +179,10 @@ end
 -- Wraps an editor handler so it only runs with a selected record and gets
 -- the record plus a restore hook for commit.
 local function edit(apply)
-    return function(value)
+    return function(...)
         local r = selected()
         if not r then return end
-        local restore = apply(r, value)
-        commit(r, restore)
+        commit(r, apply(r, ...))
     end
 end
 
@@ -444,7 +440,7 @@ local function buildEditor(page, list)
     -- Which frames the binding fires on. Orthogonal to the conditions, and
     -- meaningful for every action kind, so it sits above that section.
     fieldLabel("On frames")
-    local editFrames = edit(function(r, change)
+    local editFrames = edit(function(r, class, on)
         local previous = r.frames
         local set = {}
         for i = 1, #ns.Bindings.FRAMES do
@@ -453,7 +449,7 @@ local function buildEditor(page, list)
                 set[class] = true
             end
         end
-        set[change.class] = change.on or nil
+        set[class] = on or nil
         -- Every kind ticked is the same as no limit; none ticked is refused
         -- by Validate, so the revert puts the box back.
         local count = 0
@@ -466,7 +462,7 @@ local function buildEditor(page, list)
             local r = selected()
             return r ~= nil and ns.Bindings.FrameAllowed(r, class)
         end,
-        function(class, on) editFrames({ class = class, on = on }) end,
+        editFrames,
         function()
             local r = selected()
             return (r and framesText(r.frames)) or "All frames"
@@ -769,11 +765,13 @@ local function buildProfilesPage(f)
     ui.renameBox = keep(W.EditBox(plate, 230, function() end))
     ui.renameBox:SetPoint("TOPLEFT", X + 106, y)
     ui.renameButton = keep(W.Button(plate, "Rename", 100, function()
-        local ok, err = ns.Core:RenameProfile(selectedProfile, ui.renameBox:GetText())
+        local ok, result = ns.Core:RenameProfile(selectedProfile, ui.renameBox:GetText())
         if ok then
-            selectedProfile = ui.renameBox:GetText():gsub("^%s+", ""):gsub("%s+$", "")
+            selectedProfile = result
+            profileAction(true)
+        else
+            profileAction(false, result)
         end
-        profileAction(ok, err)
     end))
     ui.renameButton:SetPoint("LEFT", ui.renameBox, "RIGHT", 8, 0)
     y = y - 30

@@ -104,22 +104,6 @@ local function boolField(value)
     return value and "1" or "0"
 end
 
--- The classes in a frames set, in Bindings.FRAMES order for a stable string.
-local function frameList(frames)
-    local list = {}
-    if not frames then
-        return list
-    end
-    local order = (ns.Bindings and ns.Bindings.FRAMES)
-        or { "player", "target", "focus", "pet", "party", "raid", "other" }
-    for i = 1, #order do
-        if frames[order[i]] then
-            list[#list + 1] = order[i]
-        end
-    end
-    return list
-end
-
 local function encodeBinding(record)
     local key = record.key or {}
     local action = record.action or {}
@@ -155,7 +139,7 @@ local function encodeBinding(record)
         life,
         combat,
         boolField(record.enabled ~= false),
-        table.concat(frameList(record.frames), ","),
+        table.concat(ns.Bindings.FrameList(record.frames), ","),
     }, FIELD_SEP)
 end
 

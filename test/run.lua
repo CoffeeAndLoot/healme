@@ -1,23 +1,27 @@
 -- Run from the repository root: lua test/run.lua
 local harness = dofile("test/harness.lua")
 
--- Addon modules are written so that `dofile` returns the module table:
--- each begins `local _, ns = ...` / `ns = ns or {}` and ends `return M`.
+-- Addon modules take the same (addonName, ns) the client passes, publish
+-- themselves on ns, and return their table. They load here in TOC order
+-- into one shared ns, so a module can reach another's constants exactly
+-- as it does in-game.
 local modules = {
-    Compiler  = "HealMe/Compiler.lua",
-    Bindings  = "HealMe/Bindings.lua",
-    Serialize = "HealMe/Serialize.lua",
-    Registry  = "HealMe/Registry.lua",
-    Secure    = "HealMe/Secure.lua",
-    Native    = "HealMe/Native.lua",
+    { "Compiler",  "HealMe/Compiler.lua" },
+    { "Bindings",  "HealMe/Bindings.lua" },
+    { "Registry",  "HealMe/Registry.lua" },
+    { "Secure",    "HealMe/Secure.lua" },
+    { "Serialize", "HealMe/Serialize.lua" },
+    { "Native",    "HealMe/Native.lua" },
 }
 
+local ns = {}
 local loaded = {}
-for name, path in pairs(modules) do
+for i = 1, #modules do
+    local name, path = modules[i][1], modules[i][2]
     local f = io.open(path, "r")
     if f then
         f:close()
-        loaded[name] = dofile(path)
+        loaded[name] = assert(loadfile(path))("HealMe", ns)
     end
 end
 
