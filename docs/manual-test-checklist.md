@@ -232,6 +232,24 @@ above:
   last step. A retarget on a declined heal is worse than a silent no-op:
   it changes your target without you asking for it, mid-fight.
 
+## Options panel polish (2026-09-06)
+
+- [ ] Open Bindings and Settings: charcoal panels remain readable over the
+      scenery; the portrait, tabs and four ornaments still draw correctly.
+- [ ] Select a long spell name: the compact title and binding combination
+      fit without touching the editor controls.
+- [ ] New binding sits beneath the list; Enabled and Delete sit beneath the
+      editor and do not cover the bottom corner ornaments.
+- [ ] Spell guidance, Conditions and the final dropdown do not overlap at
+      your normal UI scale.
+- [ ] Change a spell and press Escape: the original value returns. Press
+      Enter on a valid edit: it saves once. Leaving the field also saves.
+- [ ] Enter an invalid spell or enable a conflicting combination: the editor
+      displays the reason. A valid edit clears it; another selection clears it.
+- [ ] Check empty profiles, disabled bindings, collapsed groups and both tabs.
+
+The automated text-edit tests cover callback behavior, not in-game rendering.
+
 ## Release checklist
 
 Run this section last, after every task section above has passed, before

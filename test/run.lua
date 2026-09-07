@@ -19,6 +19,7 @@ for name, path in pairs(modules) do
 end
 
 local suites = {
+    "test/test_widgets.lua",
     "test/test_compiler.lua",
     "test/test_bindings.lua",
     "test/test_serialize.lua",

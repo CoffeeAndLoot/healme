@@ -137,20 +137,20 @@ function Widgets.Filigree(frame)
     end
 end
 
--- A translucent dark plate for content that sits over the scene.
+-- A nearly opaque charcoal plate keeps the scene out of reading surfaces.
 function Widgets.Panel(parent)
     local p = CreateFrame("Frame", nil, parent)
 
     local bg = p:CreateTexture(nil, "BACKGROUND")
     bg:SetAllPoints()
-    bg:SetColorTexture(0, 0, 0, 0.45)
+    bg:SetColorTexture(0.045, 0.047, 0.043, 0.96)
 
     local function edge(point1, point2, w, h)
         local t = p:CreateTexture(nil, "BORDER")
         t:SetPoint(point1)
         t:SetPoint(point2)
         if w then t:SetWidth(w) else t:SetHeight(h) end
-        t:SetColorTexture(0, 0, 0, 0.7)
+        t:SetColorTexture(0.48, 0.41, 0.27, 0.28)
     end
     edge("TOPLEFT", "TOPRIGHT", nil, 1)
     edge("BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
@@ -228,14 +228,15 @@ function Widgets.EditBox(parent, width, onCommit, onCancel)
     e:SetSize(width, 22)
     e:SetAutoFocus(false)
     e:SetScript("OnEnterPressed", function(self)
-        onCommit(self:GetText())
         self:ClearFocus()
     end)
     e:SetScript("OnEditFocusLost", function(self)
-        onCommit(self:GetText())
+        if not self.cancelling then onCommit(self:GetText()) end
     end)
     e:SetScript("OnEscapePressed", function(self)
+        self.cancelling = true
         self:ClearFocus()
+        self.cancelling = nil
         if onCancel then onCancel() end
     end)
     return e
@@ -478,6 +479,7 @@ function Widgets.Window(name, title, width, height)
 
     local scene = Widgets.Atlas(content, "BACKGROUND", ATLAS.scene, -1)
     scene:SetAllPoints()
+    scene:SetVertexColor(0.45, 0.45, 0.45)
 
     -- The corners sit on their own frame above the content so nothing laid
     -- out inside can cover them.

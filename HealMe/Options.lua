@@ -38,7 +38,7 @@ local COMBAT_ORDER = { "", "in", "out" }
 
 local HEADER_HEIGHT = 24
 local ROW_HEIGHT = 40
-local LIST_WIDTH = 300
+local LIST_WIDTH = 270
 local MARGIN = 20
 
 local W -- ns.Widgets, bound in Initialize
@@ -46,6 +46,7 @@ local W -- ns.Widgets, bound in Initialize
 local selectedId = nil
 local collapsed = {}
 local ui = {}
+local editError, errorBindingId
 
 ---------------------------------------------------------------------------
 -- State helpers
@@ -126,6 +127,7 @@ end
 local function commit(record, restore)
     local ok, err = ns.Bindings.Validate(record, ns.Core:ValidationDeps())
     if not ok then
+        editError, errorBindingId = err, record.id
         ns.Core:Print("rejected: " .. err)
         if restore then restore() end
         Options:Refresh()
@@ -134,12 +136,15 @@ local function commit(record, restore)
 
     local clash = ns.Bindings.FindConflict(bindings(), record)
     if clash then
+        editError = "Already used by " .. describe(clash)
+        errorBindingId = record.id
         ns.Core:Print("that combination is already used by: " .. describe(clash))
         if restore then restore() end
         Options:Refresh()
         return false
     end
 
+    editError, errorBindingId = nil, nil
     ns.Core:NotifyChanged()
     Options:Refresh()
     return true
@@ -246,56 +251,60 @@ local function newRow(index)
 end
 
 local function buildEditor(page, list)
-    -- The header sits straight on the scene, the way the dashboard names
-    -- the house: the icon in its gold frame, the action's name large, the
-    -- ornate rule, and the combination in gold beneath. It is the one loud
-    -- element in the window.
+    -- A compact identity header leaves room for long spell names. Editing
+    -- actions live in the footer, away from the title.
     local header = CreateFrame("Frame", nil, page)
     header:SetPoint("TOPLEFT", list, "TOPRIGHT", 24, 0)
     header:SetPoint("RIGHT", -MARGIN, 0)
-    header:SetHeight(76)
+    header:SetHeight(62)
 
-    ui.headerIcon = W.Icon(header, 58)
+    ui.headerIcon = W.Icon(header, 42)
     ui.headerIcon:SetPoint("TOPLEFT", 0, -4)
 
-    ui.headerName = header:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
+    ui.headerName = header:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     ui.headerName:SetPoint("TOPLEFT", ui.headerIcon, "TOPRIGHT", 14, -4)
-    ui.headerName:SetPoint("RIGHT", -110, 0)
+    ui.headerName:SetPoint("RIGHT", -8, 0)
     ui.headerName:SetJustifyH("LEFT")
     ui.headerName:SetWordWrap(false)
 
     ui.headerRule = W.Divider(header, 188)
     ui.headerRule:SetPoint("TOPLEFT", ui.headerName, "BOTTOMLEFT", -10, -4)
 
-    ui.headerCombo = header:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    ui.headerCombo = header:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     ui.headerCombo:SetPoint("TOPLEFT", ui.headerName, "BOTTOMLEFT", 0, -10)
     ui.headerCombo:SetJustifyH("LEFT")
 
-    ui.enabled = W.Checkbox(header, "Enabled", edit(function(r, value)
+    ui.enabled = W.Checkbox(page, "Enabled", edit(function(r, value)
         local previous = r.enabled
         r.enabled = value
         return function() r.enabled = previous end
     end))
-    ui.enabled:SetPoint("TOPRIGHT", -64, -6)
+    ui.enabled:SetPoint("BOTTOMLEFT", list, "BOTTOMRIGHT", 24, -32)
 
     -- The form on a dark plate beneath the header.
     local inset = W.Panel(page)
     inset:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
-    inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
+    inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN + 34)
     ui.editor = inset
+    ui.error = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    ui.error:SetPoint("BOTTOMLEFT", 20, 6)
+    ui.error:SetPoint("RIGHT", -20, 0)
+    ui.error:SetHeight(28)
+    ui.error:SetJustifyH("LEFT")
+    ui.error:SetTextColor(1, 0.45, 0.35)
 
     ui.emptyHint = inset:CreateFontString(nil, "ARTWORK", "GameFontDisable")
     ui.emptyHint:SetPoint("CENTER")
     ui.emptyHint:SetWidth(280)
     ui.emptyHint:SetText("Pick a binding on the left to edit it.")
 
-    -- Form rows: gold label in the left column, control in the right.
-    local LABEL_X, CONTROL_X = 20, 130
+    -- Neutral field labels keep gold reserved for section headings.
+    local LABEL_X, CONTROL_X = 20, 126
     local y = -18
     ui.fields = {}
 
     local function fieldLabel(text)
-        local fs = inset:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        local fs = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
         fs:SetPoint("TOPLEFT", LABEL_X, y - 4)
         fs:SetText(text)
         ui.fields[#ui.fields + 1] = fs
@@ -309,7 +318,7 @@ local function buildEditor(page, list)
     end
 
     fieldLabel("Mouse button")
-    ui.button = place(W.Dropdown(inset, 170, ns.Compiler.BUTTONS, BUTTON_LABEL,
+    ui.button = place(W.Dropdown(inset, 240, ns.Compiler.BUTTONS, BUTTON_LABEL,
         function() local r = selected() return r and r.key.button end,
         edit(function(r, value)
             local previous = r.key.button
@@ -332,7 +341,7 @@ local function buildEditor(page, list)
     y = y - 36
 
     fieldLabel("Action")
-    ui.kind = place(W.Dropdown(inset, 170, KIND_ORDER, KIND_LABEL,
+    ui.kind = place(W.Dropdown(inset, 240, KIND_ORDER, KIND_LABEL,
         function() local r = selected() return r and r.action.kind end,
         edit(function(r, value)
             local previousKind = r.action.kind
@@ -351,17 +360,21 @@ local function buildEditor(page, list)
     y = y - 32
 
     -- Spell and macro share a row; Refresh shows whichever applies.
-    ui.spellLabel = inset:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    ui.spellLabel = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     ui.spellLabel:SetPoint("TOPLEFT", LABEL_X, y - 4)
     ui.spellLabel:SetText("Spell")
-    ui.spell = W.EditBox(inset, 220, edit(function(r, text)
+    ui.spell = W.EditBox(inset, 230, edit(function(r, text)
         local previous = r.action.spell
         r.action.spell = text
         return function() r.action.spell = previous end
     end), function() Options:Refresh() end)
     ui.spell:SetPoint("TOPLEFT", CONTROL_X + 6, y)
+    ui.spellHint = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    ui.spellHint:SetPoint("TOPLEFT", ui.spell, "BOTTOMLEFT", 0, -5)
+    ui.spellHint:SetText("Enter the spell name. Enter saves; Escape cancels.")
+    ui.spellHint:SetTextColor(0.65, 0.65, 0.6)
 
-    ui.macroLabel = inset:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    ui.macroLabel = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     ui.macroLabel:SetPoint("TOPLEFT", LABEL_X, y - 4)
     ui.macroLabel:SetText("Macro")
     ui.macro = W.EditBox(inset, 220, edit(function(r, text)
@@ -370,16 +383,16 @@ local function buildEditor(page, list)
         return function() r.action.macrotext = previous end
     end), function() Options:Refresh() end)
     ui.macro:SetPoint("TOPLEFT", CONTROL_X + 6, y)
-    y = y - 44
+    y = y - 54
 
     -- Conditions get their own heading, like a second section of a page.
-    ui.condHeading = W.Heading(inset, "Only when", 188)
+    ui.condHeading = W.Heading(inset, "Conditions", 340)
     ui.condHeading:SetPoint("TOPLEFT", LABEL_X, y)
     y = y - 36
 
     ui.condFields = {}
     local function condLabel(text)
-        local fs = inset:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        local fs = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
         fs:SetPoint("TOPLEFT", LABEL_X, y - 4)
         fs:SetText(text)
         ui.condFields[#ui.condFields + 1] = fs
@@ -391,7 +404,7 @@ local function buildEditor(page, list)
     end
 
     condLabel("Target is")
-    ui.unit = condControl(W.Dropdown(inset, 170, UNIT_ORDER, UNIT_LABEL,
+    ui.unit = condControl(W.Dropdown(inset, 240, UNIT_ORDER, UNIT_LABEL,
         function()
             local r = selected()
             return r and ((r.conditions and r.conditions.unitFilter) or "")
@@ -403,7 +416,7 @@ local function buildEditor(page, list)
     y = y - 30
 
     condLabel("Life")
-    ui.life = condControl(W.Dropdown(inset, 170, LIFE_ORDER, LIFE_LABEL,
+    ui.life = condControl(W.Dropdown(inset, 240, LIFE_ORDER, LIFE_LABEL,
         function()
             local r = selected()
             local c = r and r.conditions or {}
@@ -417,7 +430,7 @@ local function buildEditor(page, list)
     y = y - 30
 
     condLabel("Combat")
-    ui.combat = condControl(W.Dropdown(inset, 170, COMBAT_ORDER, COMBAT_LABEL,
+    ui.combat = condControl(W.Dropdown(inset, 240, COMBAT_ORDER, COMBAT_LABEL,
         function()
             local r = selected()
             local c = r and r.conditions or {}
@@ -445,7 +458,7 @@ local function buildBindingsPage(f)
     local list = buildList(page)
     buildEditor(page, list)
 
-    -- Under the list, kept right so they clear the corner scrollwork.
+    -- Creation belongs to the list; selection actions belong to the editor.
     ui.newButton = W.Button(page, "New binding", 120, function()
         local list = bindings()
         local record = {
@@ -462,7 +475,8 @@ local function buildBindingsPage(f)
         collapsed[record.key.button] = nil
         Options:Refresh()
     end)
-    ui.newButton:SetPoint("TOPRIGHT", list, "BOTTOMRIGHT", 0, -8)
+    ui.newButton:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -8)
+    ui.newButton:SetWidth(LIST_WIDTH)
 
     ui.deleteButton = W.Button(page, "Delete", 100, function()
         local _, index = find(selectedId)
@@ -473,7 +487,7 @@ local function buildBindingsPage(f)
             Options:Refresh()
         end
     end)
-    ui.deleteButton:SetPoint("RIGHT", ui.newButton, "LEFT", -6, 0)
+    ui.deleteButton:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -MARGIN, MARGIN + 4)
 end
 
 ---------------------------------------------------------------------------
@@ -729,11 +743,11 @@ local function refreshList()
                 local disabled = record.enabled == false
                 row.icon:SetDimmed(disabled)
                 if disabled then
-                    row.name:SetTextColor(0.55, 0.55, 0.55)
-                    row.detail:SetTextColor(0.5, 0.45, 0.3)
+                    row.name:SetTextColor(0.7, 0.7, 0.65)
+                    row.detail:SetTextColor(0.6, 0.6, 0.55)
                 else
                     row.name:SetTextColor(1, 1, 1)
-                    row.detail:SetTextColor(1, 0.82, 0)
+                    row.detail:SetTextColor(0.72, 0.72, 0.65)
                 end
 
                 local isSelected = record.id == selectedId
@@ -756,6 +770,9 @@ end
 
 local function refreshEditor()
     local record = selected()
+    if errorBindingId ~= selectedId then editError, errorBindingId = nil, nil end
+    ui.error:SetText(editError or "")
+    ui.error:SetShown(record ~= nil and editError ~= nil)
     ui.deleteButton:SetEnabled(record ~= nil)
     ui.emptyHint:SetShown(record == nil)
 
@@ -768,6 +785,7 @@ local function refreshEditor()
     if not record then
         ui.spellLabel:Hide()
         ui.spell:Hide()
+        ui.spellHint:Hide()
         ui.macroLabel:Hide()
         ui.macro:Hide()
         ui.condHeading:Hide()
@@ -793,6 +811,7 @@ local function refreshEditor()
 
     ui.spellLabel:SetShown(isSpell)
     ui.spell:SetShown(isSpell)
+    ui.spellHint:SetShown(isSpell)
     if isSpell and not ui.spell:HasFocus() then
         ui.spell:SetText(record.action.spell or "")
     end
