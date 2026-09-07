@@ -489,6 +489,9 @@ Layout:
   Below it, **On frames** is a checkbox menu of frame kinds; the button reads
   "All frames" or the ticked kinds. Every kind ticked is stored as no limit,
   and Validate refuses an empty set, so the last box cannot be unticked.
+- **Help** is one plate of quest-log style headers, one per topic from
+  `Help.lua`, a plain data file of titles and paragraphs. One topic is open
+  at a time; the first opens by default.
 - **Settings** is one plate with sectioned headings: **"Also target"** (§10),
   **"Show minimap button"**, and Export and Import, which open the share
   window, a portrait window of the same style with a selectable text box.

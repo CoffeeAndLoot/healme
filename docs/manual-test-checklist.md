@@ -216,6 +216,14 @@ steps above:
 - [ ] With native clear, a Party, Raid scoped bind right-clicked on the
       player portrait opens the context menu instead of casting
 
+## Help tab
+
+- [ ] The Help tab lists nine topics as collapsible headers; Getting started
+      opens by default and the rest are collapsed
+- [ ] Clicking a header opens it and closes the other; the text wraps inside
+      the plate and the page scrolls when a topic runs long
+- [ ] Gold words match the names of controls on the other tabs
+
 ## Nameplates
 
 - [ ] In an instance with enemy nameplates on, mount, travel and pull: no

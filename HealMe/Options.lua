@@ -198,6 +198,7 @@ function Options:SelectTab(index)
     ui.bindingsPage:SetShown(index == 1)
     ui.settingsPage:SetShown(index == 2)
     ui.profilesPage:SetShown(index == 3)
+    ui.helpPage:SetShown(index == 4)
     self:Refresh()
 end
 
@@ -1013,6 +1014,83 @@ local function buildSettingsPage(f)
 end
 
 ---------------------------------------------------------------------------
+-- Help page
+---------------------------------------------------------------------------
+
+-- Topics from Help.lua as quest-log style headers with the text beneath.
+-- The first opens by default; the rest start collapsed so the page fits.
+
+local HELP_PAD = 14
+local helpOpen = nil
+
+local function buildHelpPage(f)
+    local page = CreateFrame("Frame", nil, f.content)
+    page:SetAllPoints()
+    page:Hide()
+    ui.helpPage = page
+
+    local plate = W.Panel(page)
+    plate:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+    plate:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
+
+    -- The scroll child needs a real width before text can wrap, and the
+    -- plate's width is only known once the window is laid out, so size it
+    -- from the window rather than asking the plate.
+    local width = f:GetWidth() - 2 * MARGIN - 8 - 30
+    local scroll = W.ScrollFrame(plate, width)
+    ui.helpContent = scroll.content
+    ui.helpHeaders = {}
+    ui.helpBodies = {}
+
+    local topics = ns.Help or {}
+    for i = 1, #topics do
+        local h = W.ListHeader(ui.helpContent, width, HEADER_HEIGHT + 4, function(self)
+            helpOpen = (helpOpen == self.index) and nil or self.index
+            Options:Refresh()
+        end)
+        h.index = i
+        h.text:SetText(topics[i].title)
+        h.count:SetText("")
+        ui.helpHeaders[i] = h
+
+        local body = ui.helpContent:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        body:SetWidth(width - 2 * HELP_PAD)
+        body:SetJustifyH("LEFT")
+        body:SetJustifyV("TOP")
+        body:SetSpacing(3)
+        body:SetText(table.concat(topics[i].body, "\n\n"))
+        ui.helpBodies[i] = body
+    end
+end
+
+local function refreshHelp()
+    if not ui.helpHeaders then
+        return
+    end
+    if helpOpen == nil and #ui.helpHeaders > 0 then
+        helpOpen = 1
+    end
+
+    local y = 0
+    for i = 1, #ui.helpHeaders do
+        local h, body = ui.helpHeaders[i], ui.helpBodies[i]
+        local open = helpOpen == i
+        h:SetCollapsed(not open)
+        h:ClearAllPoints()
+        h:SetPoint("TOPLEFT", 0, -y)
+        y = y + h:GetHeight() + 2
+
+        body:SetShown(open)
+        if open then
+            body:ClearAllPoints()
+            body:SetPoint("TOPLEFT", HELP_PAD, -(y + 8))
+            y = y + 8 + body:GetStringHeight() + 16
+        end
+    end
+    ui.helpContent:SetHeight(math.max(1, y))
+end
+
+---------------------------------------------------------------------------
 -- Window
 ---------------------------------------------------------------------------
 
@@ -1022,7 +1100,7 @@ local function buildWindow()
     local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 640)
 
     -- Tabs and picker sit where the dashboard puts its own.
-    ui.tabs = W.Tabs(f, { "Bindings", "Settings", "Profiles" }, function(index)
+    ui.tabs = W.Tabs(f, { "Bindings", "Settings", "Profiles", "Help" }, function(index)
         Options:SelectTab(index)
     end)
     ui.tabs:SetPoint("BOTTOMLEFT", f.content, "TOPLEFT", 60, -1)
@@ -1039,6 +1117,7 @@ local function buildWindow()
     buildBindingsPage(f)
     buildProfilesPage(f)
     buildSettingsPage(f)
+    buildHelpPage(f)
 
     return f
 end
@@ -1330,6 +1409,7 @@ function Options:Refresh()
     refreshList()
     refreshEditor()
     refreshProfiles()
+    refreshHelp()
 end
 
 ---------------------------------------------------------------------------
