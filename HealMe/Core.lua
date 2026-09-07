@@ -388,6 +388,43 @@ function Core:OnSlashCommand(input)
             end
         end
         self:Print("enabled wheel bindings: " .. wheelBinds)
+
+        -- The profile name is missing its specialisation, so report what each
+        -- candidate API actually returns rather than guessing at it again.
+        local function describeCall(name, fn, ...)
+            if type(fn) ~= "function" then
+                self:Print("  " .. name .. ": not a function")
+                return
+            end
+            local results = { pcall(fn, ...) }
+            if not results[1] then
+                self:Print("  " .. name .. ": errored - " .. tostring(results[2]))
+                return
+            end
+            local parts = {}
+            for i = 2, math.min(#results, 6) do
+                parts[#parts + 1] = type(results[i]) .. "(" .. tostring(results[i]) .. ")"
+            end
+            self:Print("  " .. name .. ": "
+                .. (#parts > 0 and table.concat(parts, ", ") or "no returns"))
+        end
+
+        self:Print("spec API:")
+        describeCall("GetSpecialization()", GetSpecialization)
+        describeCall("C_SpecializationInfo.GetSpecialization()",
+            C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
+
+        local index = (GetSpecialization and GetSpecialization())
+            or (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization
+                and C_SpecializationInfo.GetSpecialization())
+        self:Print("  index used: " .. tostring(index))
+
+        if index then
+            describeCall("GetSpecializationInfo(index)", GetSpecializationInfo, index)
+            describeCall("C_SpecializationInfo.GetSpecializationInfo(index)",
+                C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo,
+                index)
+        end
         return
     end
 

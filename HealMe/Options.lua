@@ -289,13 +289,21 @@ local function buildWindow()
     listBg:SetSize(280, 306)
     backdrop(listBg, 0.4)
 
-    local scroll = CreateFrame("ScrollFrame", "HealMeBindingScroll", listBg,
-        "UIPanelScrollFrameTemplate")
+    -- A plain scroll frame driven by the wheel. UIPanelScrollFrameTemplate
+    -- brings a scrollbar whose arrow buttons sit inside the list and look like
+    -- stray icons when there is nothing to scroll.
+    local scroll = CreateFrame("ScrollFrame", nil, listBg)
     scroll:SetPoint("TOPLEFT", 4, -4)
-    scroll:SetPoint("BOTTOMRIGHT", -26, 4)
+    scroll:SetPoint("BOTTOMRIGHT", -4, 4)
+    scroll:EnableMouseWheel(true)
+    scroll:SetScript("OnMouseWheel", function(self, delta)
+        local max = math.max(0, self:GetScrollChild():GetHeight() - self:GetHeight())
+        local target = self:GetVerticalScroll() - delta * 36
+        self:SetVerticalScroll(math.max(0, math.min(max, target)))
+    end)
 
     local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(250, 1)
+    content:SetSize(268, 1)
     scroll:SetScrollChild(content)
     ui.listContent = content
     ui.rows = {}
@@ -335,6 +343,13 @@ local function buildWindow()
     backdrop(ed, 0.4)
     ui.editor = ed
 
+    -- Shown when nothing is selected, so the pane reads as empty on purpose
+    -- rather than as a panel that failed to draw.
+    ui.emptyHint = ed:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+    ui.emptyHint:SetPoint("CENTER")
+    ui.emptyHint:SetWidth(300)
+    ui.emptyHint:SetText("Select a binding on the left,\nor press New binding.")
+
     local y = -10
 
     ui.enabled = checkbox(ed, "Enabled", function(value)
@@ -347,8 +362,8 @@ local function buildWindow()
     ui.enabled:SetPoint("TOPLEFT", 8, y)
     y = y - 30
 
-    local buttonLabel = label(ed, "Button")
-    buttonLabel:SetPoint("TOPLEFT", 12, y)
+    ui.buttonLabel = label(ed, "Button")
+    ui.buttonLabel:SetPoint("TOPLEFT", 12, y)
     ui.button = dropdown(ed, 140, ns.Compiler.BUTTONS, BUTTON_LABEL, function(value)
         local r = selected()
         if not r then return end
@@ -376,8 +391,8 @@ local function buildWindow()
     ui.alt = modToggle("alt", "Alt", 180)
     y = y - 32
 
-    local kindLabel = label(ed, "Action")
-    kindLabel:SetPoint("TOPLEFT", 12, y)
+    ui.kindLabel = label(ed, "Action")
+    ui.kindLabel:SetPoint("TOPLEFT", 12, y)
     ui.kind = dropdown(ed, 160, KIND_ORDER, KIND_LABEL, function(value)
         local r = selected()
         if not r then return end
@@ -500,15 +515,20 @@ function Options:ShowShare(mode)
         s.hint = s:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
         s.hint:SetPoint("TOPLEFT", 16, -38)
 
-        local scroll = CreateFrame("ScrollFrame", "HealMeShareScroll", s,
-            "UIPanelScrollFrameTemplate")
+        local scroll = CreateFrame("ScrollFrame", nil, s)
         scroll:SetPoint("TOPLEFT", 14, -58)
-        scroll:SetPoint("BOTTOMRIGHT", -34, 46)
+        scroll:SetPoint("BOTTOMRIGHT", -14, 46)
+        scroll:EnableMouseWheel(true)
+        scroll:SetScript("OnMouseWheel", function(self, delta)
+            local max = math.max(0, self:GetScrollChild():GetHeight() - self:GetHeight())
+            local target = self:GetVerticalScroll() - delta * 30
+            self:SetVerticalScroll(math.max(0, math.min(max, target)))
+        end)
 
         local box = CreateFrame("EditBox", nil, scroll)
         box:SetMultiLine(true)
         box:SetFontObject("ChatFontNormal")
-        box:SetWidth(390)
+        box:SetWidth(410)
         box:SetAutoFocus(false)
         box:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
         scroll:SetScrollChild(box)
@@ -591,13 +611,13 @@ function Options:Refresh()
         local row = ui.rows[i]
         if not row then
             row = CreateFrame("Button", nil, ui.listContent)
-            row:SetSize(246, 18)
+            row:SetSize(264, 18)
             row:SetPoint("TOPLEFT", 0, -(i - 1) * 18)
 
             row.text = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
             row.text:SetPoint("LEFT", 4, 0)
             row.text:SetJustifyH("LEFT")
-            row.text:SetWidth(238)
+            row.text:SetWidth(256)
 
             row.sel = row:CreateTexture(nil, "BACKGROUND")
             row.sel:SetAllPoints()
@@ -634,10 +654,26 @@ function Options:Refresh()
     ui.listContent:SetHeight(math.max(1, #list * 18))
 
     local record = selected()
-    ui.editor:SetShown(record ~= nil)
     ui.deleteButton:SetEnabled(record ~= nil)
+    ui.emptyHint:SetShown(record == nil)
+
+    local editorWidgets = {
+        ui.enabled, ui.button, ui.shift, ui.ctrl, ui.alt, ui.kind,
+        ui.buttonLabel, ui.kindLabel,
+    }
+    for i = 1, #editorWidgets do
+        editorWidgets[i]:SetShown(record ~= nil)
+    end
 
     if not record then
+        ui.spellLabel:Hide()
+        ui.spell:Hide()
+        ui.macroLabel:Hide()
+        ui.macro:Hide()
+        ui.condLabel:Hide()
+        ui.unit:Hide()
+        ui.life:Hide()
+        ui.combat:Hide()
         return
     end
 
