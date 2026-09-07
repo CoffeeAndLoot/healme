@@ -659,7 +659,9 @@ end
 ---------------------------------------------------------------------------
 
 local function buildWindow()
-    local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 544)
+    -- The dashboard's width, and a taller frame than its 544: the editor form
+    -- is long and the list benefits from the rows.
+    local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 640)
 
     -- Tabs and picker sit where the dashboard puts its own.
     ui.tabs = W.Tabs(f, { "Bindings", "Settings" }, function(index)
