@@ -616,6 +616,11 @@ list, plus `.luarc.json` pinning Lua 5.1 for the Ketho VS Code API extension.
 
 ## 18. Packaging and release
 
+Versions are calendar dates: `YYYY.MM.DD`, zero-padded, with a `.2` suffix
+for a second release on one day. The TOC `## Version` is the only place the
+number is written; `Core.version` reads it through `C_AddOns.GetAddOnMetadata`
+at load and falls back to "dev" outside the client.
+
 Tag-driven GitHub Actions, adapted from the workflow already proven in the
 `wow-addons` repo: on a `v*` tag, verify the TOC `## Version` matches the tag,
 zip the `HealMe/` folder, attach it to a GitHub release, and optionally upload

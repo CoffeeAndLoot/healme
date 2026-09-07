@@ -4,7 +4,20 @@ ns = ns or {}
 local Core = {}
 ns.Core = Core
 
-Core.version = "0.1.0"
+-- Versions are calendar dates, year.month.day, zero-padded (2026.09.07),
+-- with a .2 suffix for a second release the same day. The TOC is the only
+-- place the number is written; a release is a TOC edit and a matching tag.
+local function tocVersion()
+    if C_AddOns and C_AddOns.GetAddOnMetadata then
+        local ok, version = pcall(C_AddOns.GetAddOnMetadata, addonName, "Version")
+        if ok and type(version) == "string" and version ~= "" then
+            return version
+        end
+    end
+    return "dev"
+end
+
+Core.version = tocVersion()
 
 -- HealMe ships no libraries. Everything below is plain Blizzard API: an event
 -- frame, a saved-variables table, and a slash command. The lifecycle, event

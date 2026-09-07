@@ -35,6 +35,10 @@ entry for every UI or secure change. A throwaway smoke test with a permissive
 `CreateFrame` stub (every method a no-op) catches nil errors in the panel's
 build and refresh paths before the user tests it.
 
+Versions are calendar dates (`2026.09.07`, `.2` for a second release that
+day), written only in `HealMe/HealMe.toc`; Core reads it at load. Releasing
+is a TOC edit plus a matching `v2026.09.07` tag.
+
 Commit after each change. Another agent (Codex) also commits to this repo, so
 re-read files before editing.
 

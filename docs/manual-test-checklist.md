@@ -8,7 +8,8 @@ Setup: `/console scriptErrors 1`, and install BugSack + BugGrabber.
 
 ## Task 1 — the addon loads
 
-- [ ] `/healme` prints "HealMe: loaded, version 0.1.0"
+- [ ] `/healme status` prints the version from the TOC (a date such as
+      2026.09.07, never "dev")
 - [ ] The addon appears in the addon compartment; clicking it prints the same
 - [ ] `/reload` produces no Lua errors
 

@@ -3,7 +3,7 @@
 ## Notes: Mouse click-casting for healers.
 ## Author: CoffeeAndLoot
 ## IconTexture: Interface\AddOns\HealMe\Media\icon
-## Version: 0.1.0
+## Version: 2026.09.07
 ## SavedVariables: HealMeDB
 ## AddonCompartmentFunc: HealMe_OnAddonCompartmentClick
 
