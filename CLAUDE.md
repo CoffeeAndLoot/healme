@@ -30,9 +30,9 @@ luacheck runs on this box from PowerShell (Lua 5.4 under
 `lfs.lua` shim there since no C compiler exists):
 
 ```
-$env:PATH = "$HOME\AppData\Local\Programs\Luain;$env:PATH"
-$env:LUA_PATH = "$HOME\.luarocks\share\lua.4\?.lua;$HOME\.luarocks\share\lua.4\?\init.lua;;"
-lua "$HOME\.luarocks\share\lua.4\luacheck\main.lua" HealMe test --no-color --no-cache
+$env:PATH = "$HOME\AppData\Local\Programs\Lua\bin;$env:PATH"
+$env:LUA_PATH = "$HOME\.luarocks\share\lua\5.4\?.lua;$HOME\.luarocks\share\lua\5.4\?\init.lua;;"
+lua "$HOME\.luarocks\share\lua\5.4\luacheck\main.lua" HealMe test --no-color --no-cache
 ```
 
 Keep it at zero warnings. Unused `self` is silenced by config; a Blizzard
