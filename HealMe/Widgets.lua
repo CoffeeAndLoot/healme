@@ -621,4 +621,36 @@ function Widgets.Window(name, title, width, height)
     return f
 end
 
+---------------------------------------------------------------------------
+-- Confirmation
+---------------------------------------------------------------------------
+
+-- Blizzard's own yes/no popup, for anything that throws data away. The
+-- callback runs only on Yes. Without the popup system the action is
+-- refused rather than run unasked.
+function Widgets.Confirm(message, onAccept)
+    if not (StaticPopupDialogs and StaticPopup_Show) then
+        return false
+    end
+    if not StaticPopupDialogs["HEALME_CONFIRM"] then
+        StaticPopupDialogs["HEALME_CONFIRM"] = {
+            text = "%s",
+            button1 = YES or "Yes",
+            button2 = NO or "No",
+            OnAccept = function(_, data)
+                if data and data.onAccept then
+                    data.onAccept()
+                end
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            showAlert = true,
+            preferredIndex = 3,
+        }
+    end
+    StaticPopup_Show("HEALME_CONFIRM", message, nil, { onAccept = onAccept })
+    return true
+end
+
 return Widgets

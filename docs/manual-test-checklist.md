@@ -156,7 +156,9 @@ steps above:
       in the tab strip updates to match
 - [ ] Picking another profile from the picker swaps the list and prints nothing
       odd
-- [ ] Deleting a binding asks for confirmation and stops the bind firing
+- [ ] Deleting a binding asks for confirmation in Blizzard's yes/no popup,
+      naming the binding; No leaves it, Yes removes it and stops the bind
+      firing
 - [ ] Create an enabled spell binding, then change its Action to "Run a
       macro" without entering macro text. Expect a rejection message AND the
       Action dropdown to snap back to "Cast a spell". If the dropdown stays on
@@ -181,7 +183,9 @@ steps above:
       selected one's; Reset to empty clears the active profile
 - [ ] Rename the selected profile: the list and the picker update. Renaming
       this spec's profile shows the orange warning first
-- [ ] Delete is greyed for the active profile; deleting another removes it
+- [ ] Delete is greyed for the active profile; deleting another asks first,
+      naming the profile, and Yes removes it
+- [ ] Reset to empty asks first, naming the active profile
 - [ ] A blank name or a name already in use shows the red message on the
       plate and changes nothing
 
@@ -233,8 +237,9 @@ steps above:
 ## Task 12 — export and import
 
 - [ ] Export on the Settings tab shows a string beginning "!HM1!"
-- [ ] Copy it, switch to another profile, paste into Import: the bindings appear
-      and immediately work
+- [ ] Copy it, switch to another profile, paste into Import: a popup says how
+      many bindings will be replaced by how many; Yes imports and they
+      immediately work
 - [ ] Pasting rubbish prints "import failed: that does not look like a HealMe
       binding string"
 - [ ] Truncating a valid string by a few characters prints "import failed: the

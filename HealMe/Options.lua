@@ -566,13 +566,19 @@ local function buildBindingsPage(f)
     ui.newButton:SetWidth(140)
 
     ui.deleteButton = W.Button(page, "Delete", 100, function()
-        local _, index = find(selectedId)
-        if index then
-            table.remove(bindings(), index)
+        local record, index = find(selectedId)
+        if not index then
+            return
+        end
+        W.Confirm("Delete the binding " .. describe(record) .. "?", function()
+            local _, again = find(record.id)
+            if again then
+                table.remove(bindings(), again)
+            end
             selectedId = nil
             ns.Core:NotifyChanged()
             Options:Refresh()
-        end
+        end)
     end)
     ui.deleteButton:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -MARGIN, MARGIN + 4)
 end
@@ -743,9 +749,13 @@ local function buildProfilesPage(f)
     ui.copyButton:SetPoint("LEFT", ui.switchButton, "RIGHT", 8, 0)
 
     ui.deleteProfileButton = keep(W.Button(plate, "Delete", 100, function()
-        local ok, err = ns.Core:DeleteProfile(selectedProfile)
-        if ok then selectedProfile = nil end
-        profileAction(ok, err)
+        local name = selectedProfile
+        W.Confirm("Delete the profile " .. tostring(name) .. " and every binding in it?",
+            function()
+                local ok, err = ns.Core:DeleteProfile(name)
+                if ok then selectedProfile = nil end
+                profileAction(ok, err)
+            end)
     end))
     ui.deleteProfileButton:SetPoint("LEFT", ui.copyButton, "RIGHT", 8, 0)
     y = y - 28
@@ -775,8 +785,11 @@ local function buildProfilesPage(f)
 
     heading("Active profile")
     ui.resetButton = keep(W.Button(plate, "Reset to empty", 140, function()
-        ns.Core:ResetProfile()
-        profileAction(true)
+        W.Confirm("Remove every binding from " .. tostring(ns.Core.profileName) .. "?",
+            function()
+                ns.Core:ResetProfile()
+                profileAction(true)
+            end)
     end))
     ui.resetButton:SetPoint("TOPLEFT", X + 4, y)
     y = y - 28
@@ -1072,21 +1085,28 @@ function Options:ShowShare(mode)
                     ns.Core:Print("import failed: " .. err)
                     return
                 end
-                local accepted, skipped = ns.Bindings.Sanitize(profile.bindings,
-                    ns.Core:ValidationDeps())
-                ns.Core.db.profile.bindings = accepted
-                ns.Core.db.profile.settings.alsoTarget =
-                    profile.settings.alsoTarget and true or false
-                selectedId = nil
-                ns.Core:NotifyChanged()
-                local message = "imported " .. #accepted .. " bindings"
-                if skipped > 0 then
-                    message = message .. " (" .. skipped
-                        .. " skipped: invalid or duplicate)"
-                end
-                ns.Core:Print(message)
-                s:Hide()
-                Options:Refresh()
+                -- Parsed before asking, so a bad string is refused without a
+                -- pointless question; the replacement waits on Yes.
+                local current = #ns.Core:Bindings()
+                W.Confirm("Replace the " .. current .. " binding"
+                    .. (current == 1 and "" or "s") .. " in " .. tostring(ns.Core.profileName)
+                    .. " with the " .. #profile.bindings .. " from this string?", function()
+                    local accepted, skipped = ns.Bindings.Sanitize(profile.bindings,
+                        ns.Core:ValidationDeps())
+                    ns.Core.db.profile.bindings = accepted
+                    ns.Core.db.profile.settings.alsoTarget =
+                        profile.settings.alsoTarget and true or false
+                    selectedId = nil
+                    ns.Core:NotifyChanged()
+                    local message = "imported " .. #accepted .. " bindings"
+                    if skipped > 0 then
+                        message = message .. " (" .. skipped
+                            .. " skipped: invalid or duplicate)"
+                    end
+                    ns.Core:Print(message)
+                    s:Hide()
+                    Options:Refresh()
+                end)
             else
                 s.box:HighlightText()
                 s.box:SetFocus()
