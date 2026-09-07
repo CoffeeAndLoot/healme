@@ -61,6 +61,14 @@ function Registry:IterateFrames()
     return pairs(frames)
 end
 
+function Registry:Count()
+    local n = 0
+    for _ in pairs(frames) do
+        n = n + 1
+    end
+    return n
+end
+
 function Registry:Initialize()
     local conflict = conflictingAddon()
     if conflict then

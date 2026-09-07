@@ -76,4 +76,158 @@ return function(h, m)
             h.truthy(Serialize.Import("  " .. text .. "\n", codec))
         end)
     end)
+
+    -- The shipped codec, not the stub above. HealMe vendors no libraries, so
+    -- this is our own format rather than AceSerializer plus LibDeflate.
+    h.describe("Serialize.codec", function()
+        local real = Serialize.codec
+
+        local function roundTrip(p)
+            return real.decode(real.encode(p))
+        end
+
+        h.it("round-trips a spell binding with modifiers", function()
+            local out = roundTrip({
+                settings = { alsoTarget = true },
+                bindings = { {
+                    id = "b1",
+                    enabled = true,
+                    key = { button = "BUTTON2", shift = true, alt = true },
+                    action = { kind = "spell", spell = "Rejuvenation" },
+                } },
+            })
+            h.eq(out.settings.alsoTarget, true)
+            h.eq(#out.bindings, 1)
+            local b = out.bindings[1]
+            h.eq(b.key.button, "BUTTON2")
+            h.eq(b.key.shift, true)
+            h.eq(b.key.alt, true)
+            h.falsy(b.key.ctrl)
+            h.eq(b.action.kind, "spell")
+            h.eq(b.action.spell, "Rejuvenation")
+            h.eq(b.enabled, true)
+        end)
+
+        h.it("round-trips every condition field", function()
+            local out = roundTrip({
+                settings = { alsoTarget = false },
+                bindings = { {
+                    key = { button = "WHEELUP" },
+                    action = { kind = "spell", spell = "Regrowth" },
+                    conditions = { unitFilter = "help", aliveOnly = true, combat = false },
+                } },
+            })
+            local c = out.bindings[1].conditions
+            h.eq(c.unitFilter, "help")
+            h.eq(c.aliveOnly, true)
+            h.eq(c.combat, false)
+            h.eq(out.settings.alsoTarget, false)
+        end)
+
+        h.it("keeps combat=true distinct from no combat condition", function()
+            local yes = roundTrip({ bindings = { {
+                key = { button = "BUTTON1" },
+                action = { kind = "spell", spell = "Regrowth" },
+                conditions = { combat = true },
+            } } })
+            h.eq(yes.bindings[1].conditions.combat, true)
+
+            local none = roundTrip({ bindings = { {
+                key = { button = "BUTTON1" },
+                action = { kind = "spell", spell = "Regrowth" },
+            } } })
+            h.falsy(none.bindings[1].conditions)
+        end)
+
+        h.it("round-trips dead-only", function()
+            local out = roundTrip({ bindings = { {
+                key = { button = "BUTTON1" },
+                action = { kind = "spell", spell = "Rebirth" },
+                conditions = { deadOnly = true },
+            } } })
+            h.eq(out.bindings[1].conditions.deadOnly, true)
+            h.falsy(out.bindings[1].conditions.aliveOnly)
+        end)
+
+        -- Macro text is author-supplied and can contain anything, including the
+        -- characters the format uses as separators.
+        h.it("survives macro text containing separators and newlines", function()
+            local nasty = "/cast [@mouseover] A^B~C%D\n/target [@mouseover]"
+            local out = roundTrip({ bindings = { {
+                key = { button = "BUTTON3" },
+                action = { kind = "macro", macrotext = nasty },
+            } } })
+            h.eq(#out.bindings, 1)
+            h.eq(out.bindings[1].action.macrotext, nasty)
+        end)
+
+        h.it("survives a spell name containing a percent sign", function()
+            local out = roundTrip({ bindings = { {
+                key = { button = "BUTTON1" },
+                action = { kind = "spell", spell = "100% Mana %5E Test" },
+            } } })
+            h.eq(out.bindings[1].action.spell, "100% Mana %5E Test")
+        end)
+
+        h.it("round-trips a disabled binding", function()
+            local out = roundTrip({ bindings = { {
+                enabled = false,
+                key = { button = "BUTTON1" },
+                action = { kind = "spell", spell = "Regrowth" },
+            } } })
+            h.eq(out.bindings[1].enabled, false)
+        end)
+
+        h.it("round-trips several bindings in order", function()
+            local out = roundTrip({ bindings = {
+                { key = { button = "BUTTON1" }, action = { kind = "target" } },
+                { key = { button = "BUTTON2" }, action = { kind = "spell", spell = "Regrowth" } },
+                { key = { button = "BUTTON3" }, action = { kind = "togglemenu" } },
+            } })
+            h.eq(#out.bindings, 3)
+            h.eq(out.bindings[1].action.kind, "target")
+            h.eq(out.bindings[2].action.spell, "Regrowth")
+            h.eq(out.bindings[3].action.kind, "togglemenu")
+        end)
+
+        h.it("assigns unique sequential ids on decode", function()
+            local out = roundTrip({ bindings = {
+                { key = { button = "BUTTON1" }, action = { kind = "target" } },
+                { key = { button = "BUTTON2" }, action = { kind = "focus" } },
+            } })
+            h.eq(out.bindings[1].id, "b1")
+            h.eq(out.bindings[2].id, "b2")
+        end)
+
+        h.it("handles a profile with no bindings", function()
+            local out = roundTrip({ settings = { alsoTarget = true }, bindings = {} })
+            h.eq(#out.bindings, 0)
+            h.eq(out.settings.alsoTarget, true)
+        end)
+
+        h.it("returns nil for empty or non-string input", function()
+            h.falsy(real.decode(""))
+            h.falsy(real.decode(nil))
+            h.falsy(real.decode(42))
+        end)
+
+        h.it("works end to end through Export and Import", function()
+            local text = Serialize.Export({
+                settings = { alsoTarget = true },
+                bindings = { {
+                    key = { button = "BUTTON2", ctrl = true },
+                    action = { kind = "spell", spell = "Swiftmend" },
+                    conditions = { unitFilter = "help" },
+                } },
+            }, real)
+            h.eq(text:sub(1, #Serialize.PREFIX), Serialize.PREFIX)
+
+            local out, err = Serialize.Import(text, real)
+            h.truthy(out, "import failed: " .. tostring(err))
+            h.eq(out.bindings[1].action.spell, "Swiftmend")
+            h.eq(out.bindings[1].key.ctrl, true)
+            h.eq(out.bindings[1].conditions.unitFilter, "help")
+            h.eq(out.settings.alsoTarget, true)
+        end)
+    end)
 end

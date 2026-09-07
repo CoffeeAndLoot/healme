@@ -1,97 +1,165 @@
 local addonName, ns = ...
 ns = ns or {}
 
-local AceAddon = LibStub("AceAddon-3.0")
-local Core = AceAddon:NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
+local Core = {}
 ns.Core = Core
 
 Core.version = "0.1.0"
 
-local DEFAULTS = {
-    profile = {
+-- HealMe ships no libraries. Everything below is plain Blizzard API: an event
+-- frame, a saved-variables table, and a slash command. The lifecycle, event
+-- dispatch and profile handling that Ace3 would have provided are small enough
+-- to own outright, and owning them means nothing can break because another
+-- addon shipped a forked copy of a library under a different name.
+
+local function defaultProfile()
+    return {
         bindings = {},
         settings = {
             alsoTarget = false,
         },
-    },
-}
+    }
+end
 
 function Core:Print(msg)
     print("|cff33ff99HealMe|r: " .. tostring(msg))
 end
 
--- The profile name for the character's current specialisation, so binding sets
--- swap with spec automatically. Falls back to a per-character profile when the
--- player has not chosen a spec yet.
-local function specProfileName()
-    local index = GetSpecialization and GetSpecialization()
-    if not index then
+---------------------------------------------------------------------------
+-- Profiles
+---------------------------------------------------------------------------
+
+-- Binding sets swap with specialisation, so a healer's Restoration binds do not
+-- follow them into Balance. The API for reading the current spec has moved
+-- between expansions, so try the modern namespace first and fall back rather
+-- than erroring; a character-only profile is a worse experience than a
+-- per-spec one, but silently sharing one profile across every character would
+-- be worse still.
+local function currentSpecName()
+    local getSpec = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
+        or GetSpecialization
+    local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
+        or GetSpecializationInfo
+
+    if type(getSpec) ~= "function" or type(getInfo) ~= "function" then
         return nil
     end
-    local id, name = GetSpecializationInfo(index)
-    if not id then
+
+    local ok, index = pcall(getSpec)
+    if not ok or not index then
         return nil
     end
-    return (UnitName("player") or "?") .. " - " .. (name or tostring(id))
-end
 
-function Core:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("HealMeDB", DEFAULTS, true)
-
-    self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileChanged")
-    self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileChanged")
-    self.db.RegisterCallback(self, "OnProfileReset", "OnProfileChanged")
-
-    local AceSerializer = LibStub("AceSerializer-3.0")
-    local LibDeflate = LibStub("LibDeflate")
-
-    ns.Serialize.codec = {
-        encode = function(value)
-            local serialized = AceSerializer:Serialize(value)
-            local compressed = LibDeflate:CompressDeflate(serialized)
-            return LibDeflate:EncodeForPrint(compressed)
-        end,
-        decode = function(text)
-            local compressed = LibDeflate:DecodeForPrint(text)
-            if not compressed then return nil end
-            local serialized = LibDeflate:DecompressDeflate(compressed)
-            if not serialized then return nil end
-            local ok, value = AceSerializer:Deserialize(serialized)
-            if not ok then return nil end
-            return value
-        end,
-    }
-
-    self:RegisterChatCommand("healme", "OnSlashCommand")
-    self:RegisterChatCommand("hm", "OnSlashCommand")
-end
-
-function Core:OnEnable()
-    self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED", "OnSpecChanged")
-    self:OnSpecChanged(nil, "player")
-
-    self.registryActive = ns.Registry:Initialize()
-    if self.registryActive then
-        ns.Secure:Initialize()
-        ns.Secure:ApplyAll()
+    local ok2, id, name = pcall(getInfo, index)
+    if not ok2 or not id then
+        return nil
     end
 
-    ns.Options:Initialize()
+    return name or tostring(id)
 end
 
-function Core:OnSpecChanged(_, unit)
-    if unit and unit ~= "player" then
+local function characterName()
+    local name = UnitName("player") or "?"
+    local realm = GetRealmName and GetRealmName() or nil
+    if realm and realm ~= "" then
+        return name .. " - " .. realm
+    end
+    return name
+end
+
+function Core:ProfileName()
+    local spec = currentSpecName()
+    if spec then
+        return characterName() .. " - " .. spec
+    end
+    return characterName()
+end
+
+function Core:SetProfile(name)
+    if not name or name == "" then
         return
     end
-    local name = specProfileName()
-    if name and self.db:GetCurrentProfile() ~= name then
-        self.db:SetProfile(name)
+
+    HealMeDB.profiles[name] = HealMeDB.profiles[name] or defaultProfile()
+
+    local profile = HealMeDB.profiles[name]
+    -- A profile saved by an older version may predate a field, and saved
+    -- variables are whatever was on disk, so fill gaps rather than trusting it.
+    profile.bindings = profile.bindings or {}
+    profile.settings = profile.settings or {}
+    if profile.settings.alsoTarget == nil then
+        profile.settings.alsoTarget = false
     end
+
+    self.profileName = name
+    self.db.profile = profile
 end
 
-function Core:OnProfileChanged()
+function Core:ProfileNames()
+    local names = {}
+    for name in pairs(HealMeDB.profiles) do
+        names[#names + 1] = name
+    end
+    table.sort(names)
+    return names
+end
+
+function Core:CopyProfileFrom(sourceName)
+    local source = HealMeDB.profiles[sourceName]
+    if not source or sourceName == self.profileName then
+        return false
+    end
+
+    local copy = defaultProfile()
+    copy.settings.alsoTarget = source.settings and source.settings.alsoTarget or false
+
+    for i = 1, #(source.bindings or {}) do
+        local record = source.bindings[i]
+        local key = record.key or {}
+        local action = record.action or {}
+        local conditions = record.conditions
+
+        copy.bindings[i] = {
+            id = "b" .. i,
+            enabled = record.enabled ~= false,
+            key = {
+                button = key.button,
+                shift = key.shift,
+                ctrl = key.ctrl,
+                alt = key.alt,
+            },
+            action = {
+                kind = action.kind,
+                spell = action.spell,
+                macrotext = action.macrotext,
+            },
+            conditions = conditions and {
+                unitFilter = conditions.unitFilter,
+                aliveOnly = conditions.aliveOnly,
+                deadOnly = conditions.deadOnly,
+                combat = conditions.combat,
+            } or nil,
+        }
+    end
+
+    HealMeDB.profiles[self.profileName] = copy
+    self.db.profile = copy
+    self:NotifyChanged()
+    return true
+end
+
+function Core:ResetProfile()
+    local fresh = defaultProfile()
+    HealMeDB.profiles[self.profileName] = fresh
+    self.db.profile = fresh
     self:NotifyChanged()
 end
+
+---------------------------------------------------------------------------
+-- Accessors used by the other modules
+---------------------------------------------------------------------------
+
+Core.db = { profile = defaultProfile() }
 
 function Core:Bindings()
     return self.db.profile.bindings
@@ -116,8 +184,17 @@ function Core:ValidationDeps()
     }
 end
 
--- Called whenever the binding table or settings change. Replaced with the real
--- implementation in Task 9, once Secure exists.
+---------------------------------------------------------------------------
+-- Change notification
+---------------------------------------------------------------------------
+
+local listeners = {}
+
+-- Options subscribes so the panel redraws when bindings change underneath it.
+function Core:RegisterListener(fn)
+    listeners[#listeners + 1] = fn
+end
+
 function Core:ApplyAll()
     if ns.Secure and ns.Secure.ApplyAll then
         ns.Secure:ApplyAll()
@@ -126,8 +203,67 @@ end
 
 function Core:NotifyChanged()
     self:ApplyAll()
-    self:SendMessage("HealMe_BindingsChanged")
+    for i = 1, #listeners do
+        -- A broken listener must not stop the others, and must not throw into
+        -- whatever called us.
+        xpcall(listeners[i], geterrorhandler())
+    end
 end
+
+---------------------------------------------------------------------------
+-- Lifecycle
+---------------------------------------------------------------------------
+
+function Core:OnAddonLoaded()
+    HealMeDB = HealMeDB or {}
+    HealMeDB.profiles = HealMeDB.profiles or {}
+
+    self:SetProfile(self:ProfileName())
+end
+
+function Core:OnLogin()
+    self.registryActive = ns.Registry:Initialize()
+    if self.registryActive then
+        ns.Secure:Initialize()
+        ns.Secure:ApplyAll()
+    end
+
+    if ns.Options and ns.Options.Initialize then
+        ns.Options:Initialize()
+    end
+end
+
+function Core:OnSpecChanged(unit)
+    if unit and unit ~= "player" then
+        return
+    end
+
+    local name = self:ProfileName()
+    if name ~= self.profileName then
+        self:SetProfile(name)
+        self:NotifyChanged()
+    end
+end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("PLAYER_LOGIN")
+events:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+events:SetScript("OnEvent", function(_, event, arg1)
+    if event == "ADDON_LOADED" then
+        if arg1 == addonName then
+            Core:OnAddonLoaded()
+        end
+    elseif event == "PLAYER_LOGIN" then
+        Core:OnLogin()
+    elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
+        Core:OnSpecChanged(arg1)
+    end
+end)
+
+---------------------------------------------------------------------------
+-- Slash command
+---------------------------------------------------------------------------
 
 function Core:OnSlashCommand(input)
     input = (input or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
@@ -137,21 +273,22 @@ function Core:OnSlashCommand(input)
             ns.Options:Open()
         else
             self:Print("loaded, version " .. self.version
-                .. " - profile: " .. self.db:GetCurrentProfile())
+                .. " - profile: " .. tostring(self.profileName))
         end
         return
     end
 
     if input == "status" then
         self:Print("version " .. self.version)
-        self:Print("profile: " .. self.db:GetCurrentProfile())
+        self:Print("profile: " .. tostring(self.profileName))
         self:Print("bindings: " .. #self:Bindings())
         self:Print("also target: " .. tostring(self:Settings().alsoTarget))
+        self:Print("frames registered: " .. (ns.Registry and ns.Registry:Count() or 0))
         return
     end
 
-    -- Temporary command surface for creating test bindings. Options.lua now
-    -- exists but these stay until the panel is proven in-game.
+    -- Temporary command surface for creating test bindings. It stays until the
+    -- panel is proven in-game.
     local button, spell = input:match("^bind (%S+) (.+)$")
     if button then
         local record = {
@@ -188,6 +325,12 @@ function Core:OnSlashCommand(input)
     end
 
     self:Print("usage: /healme [status | bind <button> <spell> | clear]")
+end
+
+SLASH_HEALME1 = "/healme"
+SLASH_HEALME2 = "/hm"
+SlashCmdList["HEALME"] = function(input)
+    Core:OnSlashCommand(input)
 end
 
 function HealMe_OnAddonCompartmentClick()
