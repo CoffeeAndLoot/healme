@@ -833,6 +833,12 @@ end
 
 local function refreshProfiles()
     local list = ns.Core:ProfileSummaries()
+
+    -- There is always an active profile, so the plate never has to sit
+    -- empty: land on it until the player picks another.
+    if not selectedProfile then
+        selectedProfile = ns.Core.profileName
+    end
     local y = 0
     local found = false
     for i = 1, #list do
