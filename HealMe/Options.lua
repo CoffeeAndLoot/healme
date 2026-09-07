@@ -49,6 +49,8 @@ local MARGIN = 20
 local W -- ns.Widgets, bound in Initialize
 
 local selectedId = nil
+local selectedProfile = nil
+local profileError = nil
 local collapsed = {}
 local ui = {}
 local editError, errorBindingId
@@ -194,7 +196,8 @@ end
 
 function Options:SelectTab(index)
     ui.bindingsPage:SetShown(index == 1)
-    ui.settingsPage:SetShown(index == 2)
+    ui.profilesPage:SetShown(index == 2)
+    ui.settingsPage:SetShown(index == 3)
     self:Refresh()
 end
 
@@ -575,6 +578,287 @@ local function buildBindingsPage(f)
 end
 
 ---------------------------------------------------------------------------
+-- Profiles page
+---------------------------------------------------------------------------
+
+-- Runs a Core profile call and keeps its error for the plate to show.
+local function profileAction(ok, err)
+    profileError = (not ok and err) or nil
+    Options:Refresh()
+end
+
+local function newProfileRow(index)
+    local content = ui.profileContent
+    local row = CreateFrame("Button", nil, content)
+    row:SetSize(content:GetWidth(), ROW_HEIGHT)
+
+    local plate = row:CreateTexture(nil, "BACKGROUND", nil, -2)
+    plate:SetPoint("TOPLEFT", 3, -2)
+    plate:SetPoint("BOTTOMRIGHT", -3, 2)
+    plate:SetColorTexture(0.3, 0.25, 0.18, 0.55)
+
+    row.sel = row:CreateTexture(nil, "BACKGROUND")
+    row.sel:SetAllPoints()
+    row.sel:SetColorTexture(0.85, 0.61, 0.12, 0.23)
+    row.sel:Hide()
+
+    row.bar = row:CreateTexture(nil, "BACKGROUND", nil, 1)
+    row.bar:SetWidth(2)
+    row.bar:SetPoint("TOPLEFT")
+    row.bar:SetPoint("BOTTOMLEFT")
+    row.bar:SetColorTexture(1, 0.82, 0, 0.9)
+    row.bar:Hide()
+
+    local hl = row:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetAllPoints()
+    hl:SetColorTexture(1, 1, 1, 0.06)
+
+    row.name = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    row.name:SetPoint("TOPLEFT", 14, -6)
+    row.name:SetPoint("RIGHT", -8, 0)
+    row.name:SetJustifyH("LEFT")
+    row.name:SetWordWrap(false)
+
+    row.detail = row:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    row.detail:SetPoint("BOTTOMLEFT", 14, 6)
+    row.detail:SetPoint("RIGHT", -8, 0)
+    row.detail:SetJustifyH("LEFT")
+    row.detail:SetWordWrap(false)
+
+    row:SetScript("OnClick", function(self)
+        selectedProfile = self.profileName
+        profileError = nil
+        Options:Refresh()
+    end)
+
+    ui.profileRows[index] = row
+    return row
+end
+
+local function buildProfilesPage(f)
+    local page = CreateFrame("Frame", nil, f.content)
+    page:SetAllPoints()
+    page:Hide()
+    ui.profilesPage = page
+
+    ------------------------------------------------------------ list
+    local list = W.Panel(page)
+    list:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+    list:SetPoint("BOTTOMLEFT", MARGIN, MARGIN + 34)
+    list:SetWidth(LIST_WIDTH)
+
+    local scroll = W.ScrollFrame(list, LIST_WIDTH - 22)
+    ui.profileContent = scroll.content
+    ui.profileRows = {}
+
+    -- Creating: a name and a button under the list, where New binding sits
+    -- on the other tab.
+    ui.newProfileName = W.EditBox(page, LIST_WIDTH - 130, function() end)
+    ui.newProfileName:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 6, -8)
+    ui.newProfileButton = W.Button(page, "New profile", 110, function()
+        local ok, err = ns.Core:CreateProfile(ui.newProfileName:GetText())
+        if ok then
+            ui.newProfileName:SetText("")
+            selectedProfile = ns.Core.profileName
+        end
+        profileAction(ok, err)
+    end)
+    ui.newProfileButton:SetPoint("TOPRIGHT", list, "BOTTOMRIGHT", 0, -8)
+
+    ------------------------------------------------------------ actions
+    local header = CreateFrame("Frame", nil, page)
+    header:SetPoint("TOPLEFT", list, "TOPRIGHT", 24, 0)
+    header:SetPoint("RIGHT", -MARGIN, 0)
+    header:SetHeight(62)
+
+    ui.profileIcon = W.Icon(header, 58)
+    ui.profileIcon:SetPoint("TOPLEFT", 0, -4)
+    ui.profileIcon:SetIcon(W.ICON)
+
+    ui.profileTitle = header:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
+    ui.profileTitle:SetPoint("TOPLEFT", ui.profileIcon, "TOPRIGHT", 14, -4)
+    ui.profileTitle:SetPoint("RIGHT", 0, 0)
+    ui.profileTitle:SetJustifyH("LEFT")
+    ui.profileTitle:SetWordWrap(false)
+
+    ui.profileRule = W.Divider(header, 188)
+    ui.profileRule:SetPoint("TOPLEFT", ui.profileTitle, "BOTTOMLEFT", -10, -4)
+
+    ui.profileState = header:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    ui.profileState:SetPoint("TOPLEFT", ui.profileTitle, "BOTTOMLEFT", 0, -10)
+    ui.profileState:SetJustifyH("LEFT")
+
+    local plate = W.Panel(page)
+    plate:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
+    plate:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
+
+    ui.profileEmpty = plate:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+    ui.profileEmpty:SetPoint("CENTER")
+    ui.profileEmpty:SetWidth(280)
+    ui.profileEmpty:SetText("Pick a profile on the left.")
+
+    ui.profileError = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    ui.profileError:SetPoint("BOTTOMLEFT", 20, 4)
+    ui.profileError:SetPoint("RIGHT", -20, 0)
+    ui.profileError:SetHeight(24)
+    ui.profileError:SetJustifyH("LEFT")
+    ui.profileError:SetTextColor(1, 0.45, 0.35)
+
+    local X = 20
+    local y = -18
+    ui.profileWidgets = {}
+    local function keep(w)
+        ui.profileWidgets[#ui.profileWidgets + 1] = w
+        return w
+    end
+
+    local function heading(text)
+        local h = keep(W.Heading(plate, text, 340))
+        h:SetPoint("TOPLEFT", X, y)
+        keep(h.rule)
+        y = y - 36
+    end
+
+    local function note(text)
+        local fs = keep(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"))
+        fs:SetPoint("TOPLEFT", X + 10, y)
+        fs:SetPoint("RIGHT", -20, 0)
+        fs:SetJustifyH("LEFT")
+        fs:SetText(text)
+        fs:SetTextColor(0.65, 0.65, 0.6)
+        y = y - 30
+    end
+
+    heading("Selected profile")
+
+    ui.switchButton = keep(W.Button(plate, "Switch to", 120, function()
+        profileAction(ns.Core:SwitchProfile(selectedProfile))
+    end))
+    ui.switchButton:SetPoint("TOPLEFT", X + 4, y)
+
+    ui.copyButton = keep(W.Button(plate, "Copy into active", 140, function()
+        local ok = ns.Core:CopyProfileFrom(selectedProfile)
+        profileAction(ok, (not ok) and "the active profile cannot copy from itself" or nil)
+    end))
+    ui.copyButton:SetPoint("LEFT", ui.switchButton, "RIGHT", 8, 0)
+
+    ui.deleteProfileButton = keep(W.Button(plate, "Delete", 100, function()
+        local ok, err = ns.Core:DeleteProfile(selectedProfile)
+        if ok then selectedProfile = nil end
+        profileAction(ok, err)
+    end))
+    ui.deleteProfileButton:SetPoint("LEFT", ui.copyButton, "RIGHT", 8, 0)
+    y = y - 28
+    note("Copy replaces every binding in the active profile with this one's.")
+    y = y - 6
+
+    local renameLabel = keep(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight"))
+    renameLabel:SetPoint("TOPLEFT", X, y - 4)
+    renameLabel:SetText("Rename")
+    ui.renameBox = keep(W.EditBox(plate, 230, function() end))
+    ui.renameBox:SetPoint("TOPLEFT", X + 106, y)
+    ui.renameButton = keep(W.Button(plate, "Rename", 100, function()
+        local ok, err = ns.Core:RenameProfile(selectedProfile, ui.renameBox:GetText())
+        if ok then
+            selectedProfile = ui.renameBox:GetText():gsub("^%s+", ""):gsub("%s+$", "")
+        end
+        profileAction(ok, err)
+    end))
+    ui.renameButton:SetPoint("LEFT", ui.renameBox, "RIGHT", 8, 0)
+    y = y - 30
+    ui.renameNote = keep(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"))
+    ui.renameNote:SetPoint("TOPLEFT", X + 10, y)
+    ui.renameNote:SetPoint("RIGHT", -20, 0)
+    ui.renameNote:SetJustifyH("LEFT")
+    ui.renameNote:SetTextColor(0.65, 0.65, 0.6)
+    y = y - 40
+
+    heading("Active profile")
+    ui.resetButton = keep(W.Button(plate, "Reset to empty", 140, function()
+        ns.Core:ResetProfile()
+        profileAction(true)
+    end))
+    ui.resetButton:SetPoint("TOPLEFT", X + 4, y)
+    y = y - 28
+    note("Removes every binding from the active profile. Export first if you might want them back.")
+    y = y - 6
+    note("Profiles switch automatically to the one named for your character and "
+        .. "specialisation whenever your spec changes.")
+end
+
+local function refreshProfiles()
+    local list = ns.Core:ProfileSummaries()
+    local y = 0
+    local found = false
+    for i = 1, #list do
+        local info = list[i]
+        local row = ui.profileRows[i] or newProfileRow(i)
+        row.profileName = info.name
+        row.name:SetText(info.name)
+
+        local parts = { info.count .. (info.count == 1 and " binding" or " bindings") }
+        if info.active then parts[#parts + 1] = "active" end
+        if info.spec then parts[#parts + 1] = "this spec" end
+        row.detail:SetText(table.concat(parts, ", "))
+        row.detail:SetTextColor(1, 0.82, 0)
+
+        local isSelected = info.name == selectedProfile
+        found = found or isSelected
+        row.sel:SetShown(isSelected)
+        row.bar:SetShown(isSelected)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 0, -y)
+        row:Show()
+        y = y + ROW_HEIGHT
+    end
+    for i = #list + 1, #ui.profileRows do ui.profileRows[i]:Hide() end
+    ui.profileContent:SetHeight(math.max(1, y))
+
+    if not found then
+        selectedProfile = nil
+    end
+
+    local info = nil
+    for i = 1, #list do
+        if list[i].name == selectedProfile then info = list[i] end
+    end
+
+    for i = 1, #ui.profileWidgets do ui.profileWidgets[i]:SetShown(info ~= nil) end
+    ui.profileEmpty:SetShown(info == nil)
+    ui.profileIcon:SetShown(info ~= nil)
+    ui.profileTitle:SetShown(info ~= nil)
+    ui.profileRule:SetShown(info ~= nil)
+    ui.profileState:SetShown(info ~= nil)
+    ui.profileError:SetText(profileError or "")
+    ui.profileError:SetShown(profileError ~= nil)
+
+    if not info then
+        return
+    end
+
+    ui.profileTitle:SetText(info.name)
+    local state = info.count .. (info.count == 1 and " binding" or " bindings")
+    if info.active then state = state .. ", active" end
+    if info.spec then state = state .. ", this spec's profile" end
+    ui.profileState:SetText(state)
+
+    ui.switchButton:SetEnabled(not info.active)
+    ui.copyButton:SetEnabled(not info.active)
+    ui.deleteProfileButton:SetEnabled(not info.active)
+    if not ui.renameBox:HasFocus() then
+        ui.renameBox:SetText(info.name)
+    end
+    if info.spec then
+        ui.renameNote:SetText("This is the profile your current spec returns to. Rename it and "
+            .. "the next spec change creates a fresh, empty one under this name.")
+        ui.renameNote:SetTextColor(1, 0.7, 0.4)
+    else
+        ui.renameNote:SetText("Enter a new name and press Rename.")
+        ui.renameNote:SetTextColor(0.65, 0.65, 0.6)
+    end
+end
+
+---------------------------------------------------------------------------
 -- Settings page
 ---------------------------------------------------------------------------
 
@@ -664,7 +948,7 @@ local function buildWindow()
     local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 640)
 
     -- Tabs and picker sit where the dashboard puts its own.
-    ui.tabs = W.Tabs(f, { "Bindings", "Settings" }, function(index)
+    ui.tabs = W.Tabs(f, { "Bindings", "Profiles", "Settings" }, function(index)
         Options:SelectTab(index)
     end)
     ui.tabs:SetPoint("BOTTOMLEFT", f.content, "TOPLEFT", 60, -1)
@@ -679,6 +963,7 @@ local function buildWindow()
     ui.profile:SetPoint("TOPRIGHT", -10, -28)
 
     buildBindingsPage(f)
+    buildProfilesPage(f)
     buildSettingsPage(f)
 
     return f
@@ -963,6 +1248,7 @@ function Options:Refresh()
 
     refreshList()
     refreshEditor()
+    refreshProfiles()
 end
 
 ---------------------------------------------------------------------------

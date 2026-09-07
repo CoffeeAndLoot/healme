@@ -28,6 +28,7 @@ local suites = {
     "test/test_serialize.lua",
     "test/test_registry.lua",
     "test/test_native.lua",
+    "test/test_profiles.lua",
 }
 
 for i = 1, #suites do

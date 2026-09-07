@@ -169,6 +169,22 @@ steps above:
       re-enable it. Expect the conflict message and the binding to stay
       disabled.
 
+## Profiles tab
+
+- [ ] The Profiles tab lists every profile with its binding count; the
+      active one says "active" and this spec's says "this spec"
+- [ ] Type a name under the list and press New profile: it appears, is
+      selected, is now active, and the Bindings tab is empty
+- [ ] Select another profile and press Switch to: the Bindings tab shows its
+      bindings and the profile picker in the tab strip agrees
+- [ ] Copy into active replaces the active profile's bindings with the
+      selected one's; Reset to empty clears the active profile
+- [ ] Rename the selected profile: the list and the picker update. Renaming
+      this spec's profile shows the orange warning first
+- [ ] Delete is greyed for the active profile; deleting another removes it
+- [ ] A blank name or a name already in use shows the red message on the
+      plate and changes nothing
+
 ## Native click-casting
 
 - [ ] With a spell in Blizzard's Click Casting window, /reload: one line

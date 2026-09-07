@@ -196,6 +196,100 @@ function Core:ResetProfile()
     self:NotifyChanged()
 end
 
+-- Profile management for the Profiles tab. Each returns ok, err, and the
+-- tab shows err in place rather than printing it.
+
+local function cleanName(name)
+    if type(name) ~= "string" then
+        return nil, "a profile needs a name"
+    end
+    name = name:gsub("^%s+", ""):gsub("%s+$", "")
+    if name == "" then
+        return nil, "a profile needs a name"
+    end
+    return name
+end
+
+function Core:CreateProfile(name)
+    local clean, err = cleanName(name)
+    if not clean then
+        return false, err
+    end
+    if HealMeDB.profiles[clean] then
+        return false, "a profile named " .. clean .. " already exists"
+    end
+    self:SetProfile(clean)
+    self:NotifyChanged()
+    return true
+end
+
+function Core:SwitchProfile(name)
+    if not HealMeDB.profiles[name] then
+        return false, "no profile named " .. tostring(name)
+    end
+    if name ~= self.profileName then
+        self:SetProfile(name)
+        self:NotifyChanged()
+    end
+    return true
+end
+
+function Core:RenameProfile(old, new)
+    local clean, err = cleanName(new)
+    if not clean then
+        return false, err
+    end
+    if not HealMeDB.profiles[old] then
+        return false, "no profile named " .. tostring(old)
+    end
+    if clean == old then
+        return true
+    end
+    if HealMeDB.profiles[clean] then
+        return false, "a profile named " .. clean .. " already exists"
+    end
+    HealMeDB.profiles[clean] = HealMeDB.profiles[old]
+    HealMeDB.profiles[old] = nil
+    if old == self.profileName then
+        self.profileName = clean
+    end
+    self:NotifyChanged()
+    return true
+end
+
+-- The active profile cannot be deleted: something has to hold the bindings
+-- that are applied right now. Switch first.
+function Core:DeleteProfile(name)
+    if not HealMeDB.profiles[name] then
+        return false, "no profile named " .. tostring(name)
+    end
+    if name == self.profileName then
+        return false, "switch to another profile before deleting the active one"
+    end
+    HealMeDB.profiles[name] = nil
+    self:NotifyChanged()
+    return true
+end
+
+-- One entry per profile, sorted by name: how many bindings it holds,
+-- whether it is active, and whether it is the one this character's current
+-- specialisation returns to on a spec change.
+function Core:ProfileSummaries()
+    local names = self:ProfileNames()
+    local specProfile = self:ProfileName()
+    local list = {}
+    for i = 1, #names do
+        local profile = HealMeDB.profiles[names[i]]
+        list[i] = {
+            name = names[i],
+            count = #((profile and profile.bindings) or {}),
+            active = names[i] == self.profileName,
+            spec = names[i] == specProfile,
+        }
+    end
+    return list
+end
+
 ---------------------------------------------------------------------------
 -- Accessors used by the other modules
 ---------------------------------------------------------------------------
