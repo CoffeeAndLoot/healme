@@ -488,6 +488,41 @@ function Core:OnSlashCommand(input)
         return
     end
 
+    -- Switching profile by hand drives exactly the path a specialisation change
+    -- drives, so the swap can be exercised without respeccing. The choice lasts
+    -- until the next spec change or login, both of which recompute it.
+    local wanted = input:match("^[Pp][Rr][Oo][Ff][Ii][Ll][Ee]%s+(.+)$")
+    if wanted then
+        local names = self:ProfileNames()
+        local match = nil
+        for i = 1, #names do
+            if names[i]:lower() == wanted:lower() then
+                match = names[i]
+            end
+        end
+
+        -- An unknown name creates the profile rather than refusing: that is how
+        -- a second binding set gets made before its specialisation is ever
+        -- entered.
+        self:SetProfile(match or wanted)
+        self:NotifyChanged()
+        self:Print("switched to profile: " .. self.profileName
+            .. " (" .. #self:Bindings() .. " bindings)")
+        return
+    end
+
+    if command == "profile" or command == "profiles" then
+        self:Print("current profile: " .. tostring(self.profileName))
+        local names = self:ProfileNames()
+        for i = 1, #names do
+            local count = #(HealMeDB.profiles[names[i]].bindings or {})
+            self:Print("  " .. names[i] .. "  (" .. count .. " bindings)"
+                .. (names[i] == self.profileName and "  <- current" or ""))
+        end
+        self:Print("switch with: /healme profile <name>")
+        return
+    end
+
     if command == "clear" then
         local list = self:Bindings()
         for i = #list, 1, -1 do
@@ -498,7 +533,8 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    self:Print("usage: /healme [status | diag | simulate | bind <button> <spell> | clear]")
+    self:Print("usage: /healme [status | diag | simulate | profile [name] "
+            .. "| bind <button> <spell> | clear]")
 end
 
 SLASH_HEALME1 = "/healme"
