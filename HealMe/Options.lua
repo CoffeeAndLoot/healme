@@ -782,8 +782,53 @@ local function buildProfilesPage(f)
     y = y - 28
     note("Removes every binding from the active profile. Export first if you might want them back.")
     y = y - 6
-    note("Profiles switch automatically to the one named for your character and "
-        .. "specialisation whenever your spec changes.")
+
+    -- Which profile this spec uses solo, in a party and in a raid. Applies
+    -- on spec change and on every group change; a manual pick holds until
+    -- the next one.
+    ui.ruleWidgets = {}
+    local function keepRule(w)
+        ui.ruleWidgets[#ui.ruleWidgets + 1] = w
+        return w
+    end
+
+    ui.rulesHeading = keepRule(W.Heading(plate, "Automatic switching", 340))
+    ui.rulesHeading:SetPoint("TOPLEFT", X, y)
+    keepRule(ui.rulesHeading.rule)
+    y = y - 36
+
+    local RULE_LABEL = { solo = "Solo", party = "In a party", raid = "In a raid" }
+    ui.rules = {}
+    for i = 1, #ns.Core.GROUP_TYPES do
+        local groupType = ns.Core.GROUP_TYPES[i]
+        local label = keepRule(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight"))
+        label:SetPoint("TOPLEFT", X, y - 4)
+        label:SetText(RULE_LABEL[groupType])
+        ui.rules[groupType] = keepRule(W.Dropdown(plate, 240,
+            function()
+                local items = { "" }
+                local names = ns.Core:ProfileNames()
+                for n = 1, #names do items[#items + 1] = names[n] end
+                return items
+            end,
+            setmetatable({ [""] = "Default (this spec's profile)" }, {
+                __index = function(_, name) return name end,
+            }),
+            function() return ns.Core:Rules()[groupType] or "" end,
+            function(value)
+                ns.Core:SetRule(groupType, value)
+                profileAction(true)
+            end))
+        ui.rules[groupType]:SetPoint("TOPLEFT", X + 106, y)
+        y = y - 30
+    end
+    ui.rulesNote = keepRule(plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"))
+    ui.rulesNote:SetPoint("TOPLEFT", X + 10, y)
+    ui.rulesNote:SetPoint("RIGHT", -20, 0)
+    ui.rulesNote:SetJustifyH("LEFT")
+    ui.rulesNote:SetTextColor(0.65, 0.65, 0.6)
+    ui.rulesNote:SetText("Rules apply when your spec or group changes. A profile you pick by hand "
+        .. "stays until the next change.")
 end
 
 local function refreshProfiles()
@@ -831,6 +876,16 @@ local function refreshProfiles()
     ui.profileState:SetShown(info ~= nil)
     ui.profileError:SetText(profileError or "")
     ui.profileError:SetShown(profileError ~= nil)
+
+    -- The rules section belongs to the spec, not the selection, so it shows
+    -- whenever the tab does.
+    local spec = ns.Core:SpecName()
+    ui.rulesHeading:SetText(spec and ("Automatic switching for " .. spec)
+        or "Automatic switching")
+    for i = 1, #ui.ruleWidgets do ui.ruleWidgets[i]:Show() end
+    for _, dropdown in pairs(ui.rules) do
+        dropdown:Refresh()
+    end
 
     if not info then
         return

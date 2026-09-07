@@ -9,6 +9,8 @@ return function(h)
     env.UnitName = function() return "Coffee" end
     env.GetRealmName = function() return "Suramar" end
     env.print = function() end
+    env.IsInRaid = function() return env.groupType == "raid" end
+    env.IsInGroup = function() return env.groupType ~= "solo" end
     env.geterrorhandler = function() return function(e) error(e) end end
 
     local ns = {}
@@ -22,11 +24,84 @@ return function(h)
     local Core = chunk("HealMe", ns)
 
     local function fresh()
-        env.HealMeDB = { version = 1, profiles = {} }
+        env.HealMeDB = { version = 1, profiles = {}, rules = {} }
+        env.groupType = "solo"
         Core.profileName = nil
         Core:SetProfile("Coffee - Suramar")
         return Core
     end
+
+    h.describe("Core.ResolveProfile", function()
+        local exists = function(name) return name == "Raid healing" end
+
+        h.it("returns the default when there are no rules", function()
+            h.eq(Core.ResolveProfile(nil, "raid", "Default", exists), "Default")
+            h.eq(Core.ResolveProfile({}, "raid", "Default", exists), "Default")
+        end)
+
+        h.it("returns the slot for the group type", function()
+            local rules = { raid = "Raid healing" }
+            h.eq(Core.ResolveProfile(rules, "raid", "Default", exists), "Raid healing")
+            h.eq(Core.ResolveProfile(rules, "party", "Default", exists), "Default")
+        end)
+
+        h.it("falls back when the slot names a profile that is gone", function()
+            h.eq(Core.ResolveProfile({ raid = "Deleted" }, "raid", "Default", exists), "Default")
+        end)
+    end)
+
+    h.describe("Core automatic switching", function()
+        h.it("reads the group type from the client", function()
+            local c = fresh()
+            h.eq(c:GroupType(), "solo")
+            env.groupType = "party"
+            h.eq(c:GroupType(), "party")
+            env.groupType = "raid"
+            h.eq(c:GroupType(), "raid")
+        end)
+
+        h.it("switches when the group changes and a rule says so", function()
+            local c = fresh()
+            c:CreateProfile("Raid healing")
+            c:SwitchProfile("Coffee - Suramar")
+            c:SetRule("raid", "Raid healing")
+            h.eq(c.profileName, "Coffee - Suramar")
+
+            env.groupType = "raid"
+            local name, switched = c:AutoSwitch()
+            h.eq(name, "Raid healing")
+            h.eq(switched, true)
+
+            env.groupType = "party"
+            name, switched = c:AutoSwitch()
+            h.eq(name, "Coffee - Suramar")
+            h.eq(switched, true)
+
+            name, switched = c:AutoSwitch()
+            h.eq(switched, false)
+        end)
+
+        h.it("applies a rule as soon as it is set", function()
+            local c = fresh()
+            c:CreateProfile("Solo set")
+            c:SwitchProfile("Coffee - Suramar")
+            c:SetRule("solo", "Solo set")
+            h.eq(c.profileName, "Solo set")
+            c:SetRule("solo", "")
+            h.eq(c.profileName, "Coffee - Suramar")
+        end)
+
+        h.it("follows a rename and forgets a delete", function()
+            local c = fresh()
+            c:CreateProfile("Raid healing")
+            c:SwitchProfile("Coffee - Suramar")
+            c:SetRule("raid", "Raid healing")
+            c:RenameProfile("Raid healing", "Big raids")
+            h.eq(c:Rules().raid, "Big raids")
+            c:DeleteProfile("Big raids")
+            h.eq(c:Rules().raid, nil)
+        end)
+    end)
 
     h.describe("Core profiles", function()
         h.it("creates an empty profile and switches to it", function()

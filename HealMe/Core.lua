@@ -84,6 +84,10 @@ local function characterName()
     return name
 end
 
+function Core:SpecName()
+    return currentSpecName()
+end
+
 function Core:ProfileName()
     local spec = currentSpecName()
     if spec then
@@ -199,6 +203,17 @@ end
 -- Profile management for the Profiles tab. Each returns ok, err, and the
 -- tab shows err in place rather than printing it.
 
+-- Keeps every rule pointing at a profile that still exists under its name.
+local function retargetRules(old, new)
+    for _, rules in pairs(HealMeDB.rules or {}) do
+        for groupType, name in pairs(rules) do
+            if name == old then
+                rules[groupType] = new
+            end
+        end
+    end
+end
+
 local function cleanName(name)
     if type(name) ~= "string" then
         return nil, "a profile needs a name"
@@ -250,6 +265,7 @@ function Core:RenameProfile(old, new)
     end
     HealMeDB.profiles[clean] = HealMeDB.profiles[old]
     HealMeDB.profiles[old] = nil
+    retargetRules(old, clean)
     if old == self.profileName then
         self.profileName = clean
     end
@@ -267,8 +283,67 @@ function Core:DeleteProfile(name)
         return false, "switch to another profile before deleting the active one"
     end
     HealMeDB.profiles[name] = nil
+    retargetRules(name, nil)
     self:NotifyChanged()
     return true
+end
+
+---------------------------------------------------------------------------
+-- Automatic switching
+---------------------------------------------------------------------------
+
+-- Rules say which profile a spec uses solo, in a party and in a raid. They
+-- are keyed by the spec's default profile name (character, realm, spec), so
+-- they belong to this character's habits rather than to any binding set.
+-- An empty slot means the spec-named default, which is what every spec
+-- did before rules existed.
+
+Core.GROUP_TYPES = { "solo", "party", "raid" }
+
+function Core:GroupType()
+    if IsInRaid and IsInRaid() then
+        return "raid"
+    end
+    if IsInGroup and IsInGroup() then
+        return "party"
+    end
+    return "solo"
+end
+
+function Core:Rules()
+    HealMeDB.rules = HealMeDB.rules or {}
+    local key = self:ProfileName()
+    HealMeDB.rules[key] = HealMeDB.rules[key] or {}
+    return HealMeDB.rules[key]
+end
+
+function Core:SetRule(groupType, profileName)
+    local rules = self:Rules()
+    rules[groupType] = (profileName ~= "" and profileName) or nil
+    self:AutoSwitch()
+end
+
+-- Pure: the profile a rule set picks for a group type, falling back to the
+-- default when the slot is empty or names a profile that no longer exists.
+function Core.ResolveProfile(rules, groupType, default, exists)
+    local wanted = rules and rules[groupType]
+    if wanted and (not exists or exists(wanted)) then
+        return wanted
+    end
+    return default
+end
+
+-- Applies the rule for the current spec and group. Returns the profile
+-- name chosen and whether that meant a switch.
+function Core:AutoSwitch()
+    local name = Core.ResolveProfile(self:Rules(), self:GroupType(), self:ProfileName(),
+        function(candidate) return HealMeDB.profiles[candidate] ~= nil end)
+    if name == self.profileName then
+        return name, false
+    end
+    self:SetProfile(name)
+    self:NotifyChanged()
+    return name, true
 end
 
 -- One entry per profile, sorted by name: how many bindings it holds,
@@ -369,6 +444,7 @@ function Core:OnAddonLoaded()
     -- minimap button sits is a property of the interface, not of a binding set,
     -- and it should not jump when the player changes specialisation.
     HealMeDB.ui = HealMeDB.ui or {}
+    HealMeDB.rules = HealMeDB.rules or {}
     if HealMeDB.ui.minimapAngle == nil then
         HealMeDB.ui.minimapAngle = 200
     end
@@ -390,9 +466,11 @@ end
 function Core:OnLogin()
     -- Specialisation is readable by now, so this is where the real profile is
     -- resolved. It happens before Secure applies anything, or the first apply
-    -- would use the wrong profile's bindings.
+    -- would use the wrong profile's bindings. Group state is readable too,
+    -- so the rule for the current group applies from the first apply.
     self:SetProfile(self:ProfileName())
     self:PruneEmptyFallbackProfile()
+    self:AutoSwitch()
 
     self.registryActive = ns.Registry:Initialize()
     if self.registryActive then
@@ -420,10 +498,19 @@ function Core:OnSpecChanged(unit)
         return
     end
 
-    local name = self:ProfileName()
-    if name ~= self.profileName then
-        self:SetProfile(name)
-        self:NotifyChanged()
+    self:AutoSwitch()
+end
+
+-- Fires on every change to the group's makeup, including a party being
+-- converted to a raid and the player joining or leaving. The rule is
+-- re-read each time; nothing is done unless the answer changed.
+function Core:OnGroupChanged()
+    if not self.profileName then
+        return
+    end
+    local name, switched = self:AutoSwitch()
+    if switched then
+        self:Print("switched to profile: " .. name .. " (" .. self:GroupType() .. ")")
     end
 end
 
@@ -431,6 +518,7 @@ local events = CreateFrame("Frame")
 events:RegisterEvent("ADDON_LOADED")
 events:RegisterEvent("PLAYER_LOGIN")
 events:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+events:RegisterEvent("GROUP_ROSTER_UPDATE")
 events:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" then
         if arg1 == addonName then
@@ -440,6 +528,8 @@ events:SetScript("OnEvent", function(_, event, arg1)
         Core:OnLogin()
     elseif event == "PLAYER_SPECIALIZATION_CHANGED" then
         Core:OnSpecChanged(arg1)
+    elseif event == "GROUP_ROSTER_UPDATE" then
+        Core:OnGroupChanged()
     end
 end)
 

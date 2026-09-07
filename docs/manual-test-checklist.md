@@ -185,6 +185,21 @@ steps above:
 - [ ] A blank name or a name already in use shows the red message on the
       plate and changes nothing
 
+## Automatic switching
+
+- [ ] On the Profiles tab, set "In a raid" to a second profile and leave the
+      others on Default. Nothing switches while solo
+- [ ] Join or form a party: still the default. Convert the party to a raid:
+      chat prints "switched to profile: ... (raid)" and the Bindings tab
+      shows the raid profile without a reload
+- [ ] Leave the raid: it switches back to the default and says so
+- [ ] Pick a profile by hand from the tab-strip picker while in the raid: it
+      sticks until the next group or spec change
+- [ ] Rename the raid profile: the dropdown follows. Delete it: the slot
+      returns to Default
+- [ ] Log out and back in while in a raid: the raid profile is active from
+      the start
+
 ## Native click-casting
 
 - [ ] With a spell in Blizzard's Click Casting window, /reload: one line

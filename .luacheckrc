@@ -16,4 +16,5 @@ read_globals = {
     "tinsert", "UISpecialFrames", "Minimap", "GameTooltip", "GetCursorPosition",
     "ScrollUtil", "C_Texture", "CreateFramePool", "C_SpellBook", "Enum",
     "C_ClickBindings", "GetMacroInfo", "GetStringFromModifiers", "ToggleClickBindingFrame",
+    "IsInRaid", "IsInGroup", "GetRealmName",
 }

@@ -497,7 +497,14 @@ Layout:
   plate for the selected profile with Switch to, Copy into active, Delete,
   and Rename, plus Reset for the active profile. Core supplies create,
   switch, rename, delete and a summary; the active profile cannot be
-  deleted, and errors show on the plate rather than in chat.
+  deleted, and errors show on the plate rather than in chat. Under that,
+  **Automatic switching for <spec>**: three dropdowns, solo, party and raid,
+  each naming a profile or "Default". Rules live in `HealMeDB.rules` keyed
+  by the spec's default profile name. `Core:AutoSwitch` re-resolves on
+  login, on spec change and on `GROUP_ROSTER_UPDATE`, which covers a party
+  converting to a raid; a slot naming a deleted profile falls back to the
+  default, and rename and delete retarget the rules. A profile picked by
+  hand holds until the next such change.
 
 **A new binding is created disabled.** It lands on plain left click with no
 spell, and if it were live it would overwrite an existing left-click binding
