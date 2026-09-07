@@ -374,15 +374,27 @@ local function buildEditor(page, list)
     ui.spellLabel = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     ui.spellLabel:SetPoint("TOPLEFT", LABEL_X, y - 4)
     ui.spellLabel:SetText("Spell")
-    ui.spell = W.EditBox(inset, 230, edit(function(r, text)
+    local setSpell = edit(function(r, text)
         local previous = r.action.spell
         r.action.spell = text
         return function() r.action.spell = previous end
-    end), function() Options:Refresh() end)
+    end)
+    ui.spell = W.EditBox(inset, 200, setSpell, function() Options:Refresh() end)
     ui.spell:SetPoint("TOPLEFT", CONTROL_X + 6, y)
+
+    -- Picks from the spellbook by filling the field; the field stays the
+    -- value, so anything the book does not list can still be typed.
+    ui.spellPick = W.SpellbookPicker(inset, 110, function(name)
+        ui.spell:SetText(name)
+        setSpell(name)
+    end)
+    if ui.spellPick then
+        ui.spellPick:SetPoint("LEFT", ui.spell, "RIGHT", 8, 0)
+    end
+
     ui.spellHint = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     ui.spellHint:SetPoint("TOPLEFT", ui.spell, "BOTTOMLEFT", 0, -5)
-    ui.spellHint:SetText("Enter the spell name. Enter saves; Escape cancels.")
+    ui.spellHint:SetText("Pick from the spellbook, or type a name. Enter saves; Escape cancels.")
     ui.spellHint:SetTextColor(0.65, 0.65, 0.6)
 
     ui.macroLabel = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -797,6 +809,7 @@ local function refreshEditor()
         ui.spellLabel:Hide()
         ui.spell:Hide()
         ui.spellHint:Hide()
+        if ui.spellPick then ui.spellPick:Hide() end
         ui.macroLabel:Hide()
         ui.macro:Hide()
         ui.condHeading:Hide()
@@ -823,6 +836,7 @@ local function refreshEditor()
     ui.spellLabel:SetShown(isSpell)
     ui.spell:SetShown(isSpell)
     ui.spellHint:SetShown(isSpell)
+    if ui.spellPick then ui.spellPick:SetShown(isSpell) end
     if isSpell and not ui.spell:HasFocus() then
         ui.spell:SetText(record.action.spell or "")
     end

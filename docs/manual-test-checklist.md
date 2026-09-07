@@ -130,6 +130,11 @@ steps above:
       its gold subline and does not affect BUTTON1 (its default button) or any existing
       binding on that button. Then set a spell, tick Enabled, and confirm it
       starts working
+- [ ] The Spellbook picker beside the spell field opens submenus named after
+      your spellbook tabs, each spell with its icon; no passives, no off-spec
+      spells
+- [ ] Picking a spell fills the field, updates the big header icon and name,
+      and the binding works without a reload
 - [ ] Setting button and spell produces a working click-cast without a reload
 - [ ] Typing a nonexistent spell prints "rejected: no such spell: ..." and the
       field reverts

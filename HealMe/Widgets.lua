@@ -347,6 +347,90 @@ function Widgets.Dropdown(parent, width, items, labels, current, onSelect)
 end
 
 ---------------------------------------------------------------------------
+-- Spellbook picker
+---------------------------------------------------------------------------
+
+-- The player's active spells, grouped by spellbook tab, from the client's own
+-- spellbook API. Names and icons are what the spellbook draws, not secret
+-- values. Passives cannot be click-cast and off-spec spells belong to another
+-- profile, so both are left out; flyouts are skipped.
+function Widgets.SpellbookTabs()
+    local tabs = {}
+    if not (C_SpellBook and C_SpellBook.GetNumSpellBookSkillLines
+            and Enum and Enum.SpellBookSpellBank and Enum.SpellBookItemType) then
+        return tabs
+    end
+
+    local ok, count = pcall(C_SpellBook.GetNumSpellBookSkillLines)
+    if not ok or type(count) ~= "number" then
+        return tabs
+    end
+
+    local bank = Enum.SpellBookSpellBank.Player
+    for line = 1, count do
+        local okLine, info = pcall(C_SpellBook.GetSpellBookSkillLineInfo, line)
+        if okLine and info and not info.isGuild and not info.shouldHide
+                and not info.offSpecID then
+            local spells, seen = {}, {}
+            local first = (info.itemIndexOffset or 0) + 1
+            local last = first + (info.numSpellBookItems or 0) - 1
+            for slot = first, last do
+                local okItem, item = pcall(C_SpellBook.GetSpellBookItemInfo, slot, bank)
+                if okItem and item and item.itemType == Enum.SpellBookItemType.Spell
+                        and not item.isPassive and not item.isOffSpec
+                        and item.name and item.name ~= "" and not seen[item.name] then
+                    seen[item.name] = true
+                    spells[#spells + 1] = { name = item.name, icon = item.iconID }
+                end
+            end
+            if #spells > 0 then
+                table.sort(spells, function(a, b) return a.name < b.name end)
+                tabs[#tabs + 1] = { name = info.name or "Spells", spells = spells }
+            end
+        end
+    end
+    return tabs
+end
+
+-- A dropdown whose menu mirrors the spellbook's tabs, each entry drawn with
+-- its icon. `onPick` receives the chosen spell name. Returns nil when the
+-- client lacks the modern menu, and the caller shows the text field alone.
+function Widgets.SpellbookPicker(parent, width, onPick)
+    local ok, d = pcall(CreateFrame, "DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    if not ok or not d or not d.SetupMenu then
+        return nil
+    end
+
+    d:SetWidth(width)
+    if d.SetDefaultText then
+        d:SetDefaultText("Spellbook")
+    end
+    d:SetupMenu(function(_, root)
+        local tabs = Widgets.SpellbookTabs()
+        if #tabs == 0 then
+            root:CreateButton("No spells found", function() end)
+            return
+        end
+        for t = 1, #tabs do
+            local tab = tabs[t]
+            local sub = root:CreateButton(tab.name)
+            if sub.SetScrollMode then
+                sub:SetScrollMode(360)
+            end
+            for i = 1, #tab.spells do
+                local spell = tab.spells[i]
+                local label = spell.name
+                if spell.icon then
+                    label = ("|T%s:16:16|t %s"):format(tostring(spell.icon), spell.name)
+                end
+                sub:CreateButton(label, function() onPick(spell.name) end)
+            end
+        end
+    end)
+    return d
+end
+
+---------------------------------------------------------------------------
 -- Tabs
 ---------------------------------------------------------------------------
 

@@ -465,7 +465,12 @@ Layout:
   the icon at 58px in its gold frame, the action name large, the ornate rule,
   the combination in gold, and an Enabled checkbox at the right. Beneath it a
   plate carries the form (button, modifiers, action, spell or macro text) and
-  an "Only when" section with the three condition dropdowns.
+  an "Only when" section with the three condition dropdowns. Beside the spell
+  field a **Spellbook** picker lists the player's active spells from
+  `C_SpellBook`, grouped by spellbook tab as submenus with each spell's icon
+  inline; choosing one fills the field and saves through the same validation
+  as typing. Passives, off-spec spells and flyouts are left out. The field
+  stays the value, so a spell the book does not list can still be typed.
 - **Settings** is one plate with sectioned headings: **"Also target"** (§10),
   **"Show minimap button"**, and Export and Import, which open the share
   window, a portrait window of the same style with a selectable text box.

@@ -14,5 +14,5 @@ read_globals = {
     "C_Spell", "C_AddOns", "C_Timer", "LibStub",
     -- Frame API used by the options panel and minimap button
     "tinsert", "UISpecialFrames", "Minimap", "GameTooltip", "GetCursorPosition",
-    "ScrollUtil", "C_Texture", "CreateFramePool",
+    "ScrollUtil", "C_Texture", "CreateFramePool", "C_SpellBook", "Enum",
 }
