@@ -216,6 +216,12 @@ steps above:
 - [ ] With native clear, a Party, Raid scoped bind right-clicked on the
       player portrait opens the context menu instead of casting
 
+## Nameplates
+
+- [ ] In an instance with enemy nameplates on, mount, travel and pull: no
+      error from Registry.lua about a forbidden object
+- [ ] `/healme status` frame count does not climb as nameplates spawn
+
 ## Frame scope
 
 - [ ] On a binding, open "On frames" and untick everything but Party and

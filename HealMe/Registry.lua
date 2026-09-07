@@ -48,6 +48,21 @@ function Registry.ClassifyName(name)
     return "other"
 end
 
+-- Blizzard builds nameplates through the same CompactUnitFrame factory as
+-- party and raid frames, so the factory hook sees them too. They are never
+-- click-cast targets, and inside an instance enemy plates are forbidden
+-- objects: calling any method on one raises an error, so the forbidden
+-- check comes first and is the one call the client permits.
+function Registry.Acceptable(frame)
+    if frame.IsForbidden and frame:IsForbidden() then
+        return false
+    end
+    if frame.namePlateFrame ~= nil then
+        return false
+    end
+    return true
+end
+
 function Registry:FrameClass(frame)
     return classes[frame] or "other"
 end
@@ -80,6 +95,9 @@ function Registry:Register(frame)
         frame = _G[frame]
     end
     if type(frame) ~= "table" or frames[frame] then
+        return
+    end
+    if not Registry.Acceptable(frame) then
         return
     end
     frames[frame] = true

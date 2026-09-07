@@ -16,6 +16,33 @@ return function(h, m)
         end)
     end)
 
+    h.describe("Registry.Acceptable", function()
+        h.it("refuses forbidden frames without touching anything else", function()
+            local frame = { IsForbidden = function() return true end,
+                GetName = function() error("forbidden") end }
+            h.falsy(Registry.Acceptable(frame))
+        end)
+
+        h.it("refuses nameplate unit frames", function()
+            h.falsy(Registry.Acceptable({ IsForbidden = function() return false end,
+                namePlateFrame = {} }))
+        end)
+
+        h.it("accepts an ordinary unit frame", function()
+            h.truthy(Registry.Acceptable({ IsForbidden = function() return false end,
+                GetName = function() return "CompactRaidFrame1" end }))
+        end)
+
+        h.it("skips registering a refused frame", function()
+            local before = Registry:Count()
+            Registry:Register({ IsForbidden = function() return true end })
+            Registry:Register({ namePlateFrame = {} })
+            h.eq(Registry:Count(), before)
+            Registry:Register({ GetName = function() return "CompactRaidFrame1" end })
+            h.eq(Registry:Count(), before + 1)
+        end)
+    end)
+
     h.describe("Registry.ClassifyName", function()
         h.it("sorts Blizzard's named frames", function()
             h.eq(Registry.ClassifyName("PlayerFrame"), "player")
