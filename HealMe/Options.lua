@@ -322,12 +322,14 @@ local function buildEditor(page, list)
     -- The form on a dark plate beneath the header.
     local inset = W.Panel(page)
     inset:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
-    inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN + 34)
+    -- Runs to the bottom margin: the New and Delete buttons live under the
+    -- list, not under this plate, so the form gets the full height.
+    inset:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
     ui.editor = inset
     ui.error = inset:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-    ui.error:SetPoint("BOTTOMLEFT", 20, 6)
+    ui.error:SetPoint("BOTTOMLEFT", 20, 4)
     ui.error:SetPoint("RIGHT", -20, 0)
-    ui.error:SetHeight(28)
+    ui.error:SetHeight(24)
     ui.error:SetJustifyH("LEFT")
     ui.error:SetTextColor(1, 0.45, 0.35)
 
