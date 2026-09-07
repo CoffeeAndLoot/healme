@@ -75,6 +75,18 @@ function Bindings.Validate(record, deps)
         end
     end
 
+    -- A disabled binding may be incomplete: a new one is created without a
+    -- spell, and the editor changes one field at a time, so switching the
+    -- action kind on a disabled record must not demand the next field be
+    -- filled already. Nothing compiles a disabled binding, so this is safe;
+    -- enabling it runs the full check.
+    if record.enabled == false then
+        if action.kind == "togglemenu" and hasAnyCondition(conditions) then
+            return false, "the unit menu binding does not support conditions"
+        end
+        return true, nil
+    end
+
     if action.kind == "spell" then
         if type(action.spell) ~= "string" or action.spell == "" then
             return false, "a spell binding needs a spell name"

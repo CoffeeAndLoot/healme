@@ -69,6 +69,26 @@ return function(h, m)
             }), deps))
         end)
 
+        h.it("lets a disabled binding be incomplete", function()
+            -- A new binding is created disabled with no spell, and the
+            -- editor changes one field at a time; a disabled record must be
+            -- editable through every incomplete state. Enabling it is what
+            -- demands the whole thing.
+            h.truthy(Bindings.Validate(record({
+                enabled = false, action = { kind = "spell", spell = "" },
+            }), deps))
+            h.truthy(Bindings.Validate(record({
+                enabled = false, action = { kind = "macro", macrotext = "" },
+            }), deps))
+            h.falsy(Bindings.Validate(record({
+                enabled = true, action = { kind = "spell", spell = "" },
+            }), deps))
+            -- Structural faults are still refused, disabled or not.
+            h.falsy(Bindings.Validate(record({
+                enabled = false, key = { button = "BUTTON9" },
+            }), deps))
+        end)
+
         h.it("rejects aliveOnly and deadOnly together", function()
             local ok = Bindings.Validate(record({
                 conditions = { aliveOnly = true, deadOnly = true },

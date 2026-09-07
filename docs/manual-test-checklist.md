@@ -157,10 +157,14 @@ steps above:
 - [ ] Picking another profile from the picker swaps the list and prints nothing
       odd
 - [ ] Deleting a binding asks for confirmation and stops the bind firing
-- [ ] Create a spell binding, then change its Action to "Run a macro" without
-      entering macro text. Expect a rejection message AND the Action dropdown
-      to snap back to "Cast a spell". If the dropdown stays on "Run a macro",
-      the revert is broken.
+- [ ] Create an enabled spell binding, then change its Action to "Run a
+      macro" without entering macro text. Expect a rejection message AND the
+      Action dropdown to snap back to "Cast a spell". If the dropdown stays on
+      "Run a macro", the revert is broken.
+- [ ] On a new (disabled) binding, set Action to "Open unit menu" and then
+      back to "Cast a spell": no rejection, the spell field appears empty and
+      ready. Tick Enabled with the field still empty: expect "a spell binding
+      needs a spell name" and the checkbox to clear.
 - [ ] Create two bindings on the same button and modifiers, disable one, then
       re-enable it. Expect the conflict message and the binding to stay
       disabled.
