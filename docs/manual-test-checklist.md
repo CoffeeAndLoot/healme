@@ -122,7 +122,8 @@ steps above:
 ## Task 11 — options panel
 
 - [ ] `/healme` with no arguments opens the panel
-- [ ] The panel also appears under Escape -> Options -> AddOns -> HealMe
+- [ ] The minimap button opens it too, and Escape closes it
+- [ ] The window can be dragged, and stays where it is put
 - [ ] "New binding" adds a row; selecting it shows the editor
 - [ ] Create a new binding and confirm it appears marked "(disabled)" in the
       list and does not affect BUTTON1 (its default button) or any existing
@@ -136,7 +137,8 @@ steps above:
 - [ ] Choosing "Open unit menu" hides the conditions group
 - [ ] The "Also target" toggle changes behaviour immediately: with it on, a
       heal click also switches your target
-- [ ] The Profiles tab lists the spec profiles and can copy between them
+- [ ] Switching specialisation swaps the binding list, and the profile line
+      at the top of the window updates to match
 - [ ] Deleting a binding asks for confirmation and stops the bind firing
 - [ ] Create a spell binding, then change its Action to "Run a macro" without
       entering macro text. Expect a rejection message AND the Action dropdown
@@ -232,3 +234,34 @@ pushing a version tag.
 - [ ] Install a third-party frame addon (Grid2, Cell, or ElvUI) and confirm its
       frames register and click-cast
 - [ ] Uninstall it and confirm HealMe still works on Blizzard frames
+
+## Minimap button
+
+What this section is watching for: a button that cannot be moved, cannot be
+hidden, or forgets where it was put. Its position and hidden flag are stored
+account-wide rather than per profile, so changing specialisation must not move
+it.
+
+- [ ] A HealMe button sits on the minimap ring after login
+- [ ] Clicking it opens the bindings panel; clicking again closes it
+- [ ] Hovering shows a tooltip naming the addon
+- [ ] Dragging moves it around the ring and it stays where released
+- [ ] `/reload` and it is still in the same place
+- [ ] Unticking "Show minimap button" in the panel hides it immediately
+- [ ] `/reload` while hidden and it stays hidden
+- [ ] Re-ticking brings it back in the same position
+- [ ] Change specialisation: the button does NOT move and does NOT reappear if
+      it was hidden
+
+## Diagnostics
+
+These exist because `WrapScript` leaves no readable mark on a frame, so whether
+the wheel handlers were attached cannot be seen any other way.
+
+- [ ] `/healme diag` reports registered and wheel-wrapped frame counts, and they
+      match
+- [ ] `/healme diag` reports the compiled attribute count, which should be three
+      per enabled spell binding
+- [ ] `/healme simulate` prints PASS. It deregisters and re-registers the player
+      frame, driving the same path a raid frame created after login takes; a
+      FAIL here is the raid-frame wheel bug

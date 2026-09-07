@@ -120,7 +120,6 @@ D:\healme\
     Bindings.lua
     Options.lua
     Serialize.lua
-    Libs\                       <- vendored, committed
     Media\icon.tga
   .github\workflows\release-addon.yml
   test\                         <- desktop Lua tests
@@ -145,10 +144,18 @@ TOC header:
 ```
 
 Anything declaring an `Interface` below `120000` does not load at all under
-Midnight. Vendored libraries (LibStub, CallbackHandler, AceAddon, AceDB,
-AceEvent, AceConsole, AceConfig, AceGUI, AceDBOptions, AceSerializer,
-LibDeflate) are committed rather than pulled as packager externals, matching the
-zip-the-folder release workflow.
+Midnight.
+
+**HealMe ships no libraries.** The design originally called for the Ace3 stack,
+vendored into `Libs/`. That was abandoned during implementation: the libraries
+were sourced from addons already installed on the development machine, and one
+of them shipped a fork that registers its GUI and config libraries under
+suffixed names (`AceConfig-3.0-Z`), so `LibStub("AceConfig-3.0")` could never
+resolve. Rather than re-source them, the two modules that used Ace3 were
+rewritten on plain Blizzard API. Lifecycle, event dispatch, saved variables and
+per-spec profiles are small enough to own outright; the options panel is built
+from base frames. Nothing is vendored, so nothing can break because another
+addon shipped a library under a different name.
 
 ## 6. The central design decision: conditions compile to macro text
 
@@ -204,17 +211,18 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 
 | Module | Responsibility | Depends on |
 |---|---|---|
-| `Core.lua` | AceAddon lifecycle, slash command, addon compartment entry, wiring the other modules together | Ace3 |
-| `Bindings.lua` | The binding table: create, edit, delete, validate, per-spec profiles. Knows nothing about frames or secure code. | AceDB |
+| `Core.lua` | Lifecycle on an event frame, saved variables, per-spec profiles, slash command, addon compartment entry | none |
+| `Bindings.lua` | Binding record validation, key signatures, conflict detection, import sanitising. Knows nothing about frames or secure code. | none |
 | `Compiler.lua` | Pure: one binding record in, a list of `(attribute, value)` pairs out. No WoW API. | nothing |
+| `Minimap.lua` | The minimap button and its account-wide position. | Options |
 | `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
-| `Options.lua` | AceConfig options table plus a custom combo-capture widget. | Bindings |
-| `Serialize.lua` | Export/import strings. | AceSerializer, LibDeflate |
+| `Options.lua` | A standalone window built from base frames, with hand-rolled dropdowns. | Bindings |
+| `Serialize.lua` | Export/import strings, and the field-based codec that produces them. | none |
 
 ## 9. Data model
 
-A binding record, stored in AceDB under the active profile:
+A binding record, stored in `HealMeDB.profiles[<name>]`:
 
 ```lua
 {
@@ -423,29 +431,42 @@ a healer is least able to diagnose it.
 
 ## 13. Options panel
 
-An AceConfig options table registered through AceConfigDialog, which itself
-registers with the modern `Settings` API (the removed
-`InterfaceOptions_AddCategory` is not used anywhere). Reachable from the addon
-compartment and from `/healme`.
+A standalone movable window built from base frames, opened by `/healme`, by
+the minimap button, or from the addon compartment. Escape closes it.
+
+No widget library is involved. Dropdowns in particular are hand-rolled from a
+button plus a popup list: Blizzard reworked its dropdown templates in 11.x, and
+a wrong template name yields a silent nil frame rather than an error, which is
+close to undiagnosable from outside the client.
 
 Contents:
 
-- An **"Also target"** checkbox (§10): when a bind casts, switch your target to
-  the clicked unit so action-bar follow-ups land on the same person. Applies to
-  the whole profile.
-- A list of bindings in the active profile, each row showing its combo, its
-  action, and its conditions.
-- An editor for the selected binding: action kind, spell picker or macro text
-  box, condition checkboxes.
-- A **combo capture control**. AceConfig has no widget for "press the mouse
-  combination you want," so this is a small custom AceGUI widget: a button that,
-  once armed, captures the next click and its modifier state and writes them
-  into the binding. This is the only hand-built UI in the addon.
-- Profile management (AceDBOptions) and import/export.
+- An **"Also target"** checkbox (§10) and a **"Show minimap button"** checkbox.
+- A scrolling list of the bindings in the active profile, each row showing its
+  combo, its action, and its conditions. Disabled bindings are greyed.
+- An editor for the selected binding: enabled, button, modifiers, action kind,
+  spell or macro text, and the three condition dropdowns.
+- New binding and Delete.
+- Export and Import, in a second window with a selectable text box.
+
+**A new binding is created disabled.** It lands on plain left click with no
+spell, and if it were live it would overwrite an existing left-click binding
+with a cast of nothing on the next compile.
+
+**Every setter that can produce an invalid record reverts on rejection.** The
+setter stashes the previous value, applies the change, and restores it if
+validation or conflict detection refuses. A rejected edit must never persist
+into saved variables.
+
+The combo-capture control this section originally called for — arm a button,
+press the combination you want — was not built. A capture widget has to swallow
+clicks inside a panel that is itself click-driven, and the dropdown reaches the
+same state in one more click. Recorded as follow-up rather than dropped.
 
 ## 14. Profiles
 
-AceDB profiles, with automatic switching on `PLAYER_SPECIALIZATION_CHANGED`
+Profiles live in `HealMeDB.profiles`, keyed by character, realm and
+specialisation, with automatic switching on `PLAYER_SPECIALIZATION_CHANGED`
 between profiles named for the character's specializations. A spec swap in
 combat queues the reapplication for `PLAYER_REGEN_ENABLED` like any other
 attribute write.
