@@ -38,24 +38,41 @@ end
 local function currentSpecName()
     local getSpec = (C_SpecializationInfo and C_SpecializationInfo.GetSpecialization)
         or GetSpecialization
-    local getInfo = (C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo)
-        or GetSpecializationInfo
-
-    if type(getSpec) ~= "function" or type(getInfo) ~= "function" then
+    if type(getSpec) ~= "function" then
         return nil
     end
 
     local ok, index = pcall(getSpec)
-    if not ok or not index then
+    if not ok or type(index) ~= "number" then
         return nil
     end
 
-    local ok2, id, name = pcall(getInfo, index)
-    if not ok2 or not id then
-        return nil
+    -- Both namespaces have carried a GetSpecializationInfo and their return
+    -- shapes have not always agreed. Rather than bet on one, try each and take
+    -- the first that yields an actual name. Accepting only a non-empty string
+    -- is what matters: an earlier version took the second return value on
+    -- faith and produced the profile "Coffee - Suramar - 0".
+    local candidates = {
+        C_SpecializationInfo and C_SpecializationInfo.GetSpecializationInfo,
+        GetSpecializationInfo,
+    }
+
+    for i = 1, #candidates do
+        local getInfo = candidates[i]
+        if type(getInfo) == "function" then
+            local results = { pcall(getInfo, index) }
+            if results[1] then
+                for j = 2, #results do
+                    local value = results[j]
+                    if type(value) == "string" and value ~= "" then
+                        return value
+                    end
+                end
+            end
+        end
     end
 
-    return name or tostring(id)
+    return nil
 end
 
 local function characterName()
@@ -214,8 +231,20 @@ end
 -- Lifecycle
 ---------------------------------------------------------------------------
 
+-- Bumped when the saved-variables shape changes incompatibly.
+local DB_VERSION = 1
+
 function Core:OnAddonLoaded()
     HealMeDB = HealMeDB or {}
+
+    -- Versions before 1 stored their profiles through AceDB, which owned the
+    -- same `profiles` key but wrote a different shape and left behind
+    -- `profileKeys` and a `Default` profile HealMe never used. Those builds
+    -- never shipped, so discard rather than migrate.
+    if HealMeDB.version ~= DB_VERSION then
+        HealMeDB = { version = DB_VERSION, profiles = {} }
+    end
+
     HealMeDB.profiles = HealMeDB.profiles or {}
 
     self:SetProfile(self:ProfileName())
@@ -266,7 +295,11 @@ end)
 ---------------------------------------------------------------------------
 
 function Core:OnSlashCommand(input)
-    input = (input or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+    -- Trim, but do NOT lowercase: a spell name's case is the player's to give,
+    -- and C_Spell.GetSpellInfo does not match a lowercased one. Commands are
+    -- compared against a lowered copy instead.
+    input = (input or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    local command = input:lower()
 
     if input == "" then
         if ns.Options and ns.Options.Open then
@@ -278,7 +311,7 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    if input == "status" then
+    if command == "status" then
         self:Print("version " .. self.version)
         self:Print("profile: " .. tostring(self.profileName))
         self:Print("bindings: " .. #self:Bindings())
@@ -289,7 +322,7 @@ function Core:OnSlashCommand(input)
 
     -- Temporary command surface for creating test bindings. It stays until the
     -- panel is proven in-game.
-    local button, spell = input:match("^bind (%S+) (.+)$")
+    local button, spell = input:match("^[Bb][Ii][Nn][Dd]%s+(%S+)%s+(.+)$")
     if button then
         local record = {
             id = ns.Bindings.NextId(self:Bindings()),
@@ -314,7 +347,7 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    if input == "clear" then
+    if command == "clear" then
         local list = self:Bindings()
         for i = #list, 1, -1 do
             list[i] = nil
