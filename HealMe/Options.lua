@@ -196,8 +196,8 @@ end
 
 function Options:SelectTab(index)
     ui.bindingsPage:SetShown(index == 1)
-    ui.profilesPage:SetShown(index == 2)
-    ui.settingsPage:SetShown(index == 3)
+    ui.settingsPage:SetShown(index == 2)
+    ui.profilesPage:SetShown(index == 3)
     self:Refresh()
 end
 
@@ -948,7 +948,7 @@ local function buildWindow()
     local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 640)
 
     -- Tabs and picker sit where the dashboard puts its own.
-    ui.tabs = W.Tabs(f, { "Bindings", "Profiles", "Settings" }, function(index)
+    ui.tabs = W.Tabs(f, { "Bindings", "Settings", "Profiles" }, function(index)
         Options:SelectTab(index)
     end)
     ui.tabs:SetPoint("BOTTOMLEFT", f.content, "TOPLEFT", 60, -1)

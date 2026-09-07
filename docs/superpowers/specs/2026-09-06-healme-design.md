@@ -489,15 +489,15 @@ Layout:
   Below it, **On frames** is a checkbox menu of frame kinds; the button reads
   "All frames" or the ticked kinds. Every kind ticked is stored as no limit,
   and Validate refuses an empty set, so the last box cannot be unticked.
+- **Settings** is one plate with sectioned headings: **"Also target"** (§10),
+  **"Show minimap button"**, and Export and Import, which open the share
+  window, a portrait window of the same style with a selectable text box.
 - **Profiles** mirrors Bindings: a list of profiles with binding counts and
   active and spec markers, a name field with New profile under it, and a
   plate for the selected profile with Switch to, Copy into active, Delete,
   and Rename, plus Reset for the active profile. Core supplies create,
   switch, rename, delete and a summary; the active profile cannot be
   deleted, and errors show on the plate rather than in chat.
-- **Settings** is one plate with sectioned headings: **"Also target"** (§10),
-  **"Show minimap button"**, and Export and Import, which open the share
-  window, a portrait window of the same style with a selectable text box.
 
 **A new binding is created disabled.** It lands on plain left click with no
 spell, and if it were live it would overwrite an existing left-click binding
