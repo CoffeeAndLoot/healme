@@ -16,7 +16,7 @@ read_globals = {
     "CreateFrame", "UIParent", "print", "geterrorhandler",
     "InCombatLockdown", "RegisterAttributeDriver", "UnitName", "hooksecurefunc",
     "GetSpecialization", "GetSpecializationInfo", "C_SpecializationInfo",
-    "PlayerFrame", "EditModeManagerFrame",
+    "PlayerFrame", "EditModeManagerFrame", "CompactUnitFrame_SetUpFrame",
     "C_Spell", "C_AddOns", "C_Timer", "LibStub",
     -- Frame API used by the options panel and minimap button
     "tinsert", "UISpecialFrames", "Minimap", "GameTooltip", "GetCursorPosition",

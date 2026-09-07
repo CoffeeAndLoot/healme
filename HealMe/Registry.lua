@@ -67,6 +67,8 @@ end
 
 local function safecall(func, ...)
     if func then
+        -- WoW's Lua passes extra arguments through xpcall, unlike stock 5.1.
+        ---@diagnostic disable-next-line: redundant-parameter
         return xpcall(func, errorhandler, ...)
     end
 end
@@ -218,7 +220,7 @@ function Registry:RegisterBlizzardFrames()
 
     -- Compact raid and party frames are created and recycled on demand, so hook
     -- the factory rather than enumerating once.
-    if _G.CompactUnitFrame_SetUpFrame then
+    if CompactUnitFrame_SetUpFrame then
         hooksecurefunc("CompactUnitFrame_SetUpFrame", function(frame)
             Registry:Register(frame)
         end)

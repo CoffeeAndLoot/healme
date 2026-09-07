@@ -21,6 +21,8 @@ end
 
 local function safecall(func, ...)
     if func then
+        -- WoW's Lua passes extra arguments through xpcall, unlike stock 5.1.
+        ---@diagnostic disable-next-line: redundant-parameter
         return xpcall(func, errorhandler, ...)
     end
 end

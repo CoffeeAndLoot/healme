@@ -523,8 +523,8 @@ local function buildBindingsPage(f)
     ui.newButton:SetWidth(140)
 
     ui.deleteButton = W.Button(page, "Delete", 100, function()
-        local record, index = find(selectedId)
-        if not index then
+        local record = find(selectedId)
+        if not record then
             return
         end
         W.Confirm("Delete the binding " .. describe(record) .. "?", function()

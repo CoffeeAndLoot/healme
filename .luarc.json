@@ -1,6 +1,18 @@
 {
   "runtime.version": "Lua 5.1",
-  "workspace.library": ["${3rd}/love2d/library"],
-  "diagnostics.globals": ["HealMeDB", "ClickCastFrames", "ClickCastHeader", "Clique"],
-  "workspace.ignoreDir": ["HealMe/Libs"]
+  "workspace.ignoreDir": ["HealMe/Libs", ".remember", ".superpowers"],
+  "diagnostics.globals": [
+    "HealMeDB", "HealMe_OnAddonCompartmentClick", "SLASH_HEALME1", "SLASH_HEALME2",
+    "ClickCastFrames", "ClickCastHeader", "Clique", "HealMeNS",
+    "SlashCmdList", "StaticPopupDialogs", "StaticPopup_Show", "YES", "NO",
+    "CreateFrame", "CreateFramePool", "UIParent", "UISpecialFrames", "tinsert",
+    "geterrorhandler", "hooksecurefunc", "InCombatLockdown", "RegisterAttributeDriver",
+    "UnitName", "GetRealmName", "IsInRaid", "IsInGroup",
+    "GetSpecialization", "GetSpecializationInfo", "C_SpecializationInfo",
+    "C_Spell", "C_SpellBook", "C_AddOns", "C_Timer", "C_Texture", "C_ClickBindings",
+    "Enum", "LibStub", "ScrollUtil",
+    "GetMacroInfo", "GetStringFromModifiers", "ToggleClickBindingFrame",
+    "Minimap", "GameTooltip", "GetCursorPosition", "EditModeManagerFrame",
+    "PlayerFrame", "CompactUnitFrame_SetUpFrame"
+  ]
 }

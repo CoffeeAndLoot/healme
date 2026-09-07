@@ -39,6 +39,17 @@ Keep it at zero warnings. Unused `self` is silenced by config; a Blizzard
 table we add entries to belongs in `globals`, one we only read in
 `read_globals`.
 
+The Lua language server (lua-language-server 3.19, under
+`~/AppData/Local/Programs/lua-language-server`, launcher in `~/.local/bin`)
+backs the lua-lsp plugin and has a batch checker; `.luarc.json` carries the
+WoW globals it cannot see. Keep this at zero too:
+
+```
+lua-language-server --check D:\healme --checklevel=Warning --check_out_path=<file.json>
+```
+
+A new WoW global goes in both `.luacheckrc` and `.luarc.json`.
+
 Run a single suite by editing the `suites` list in `test/run.lua` temporarily,
 or `dofile` one `test/test_*.lua` file with the harness and loaded modules.
 Add any new WoW global you use to `read_globals` in `.luacheckrc`.

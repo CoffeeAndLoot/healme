@@ -19,6 +19,8 @@ return function(h)
         chunk = assert(loadfile("HealMe/Widgets.lua"))
         setfenv(chunk, env)
     else
+        -- The 5.2+ form; the 5.1 branch above is what the client runs.
+        ---@diagnostic disable-next-line: redundant-parameter
         chunk = assert(loadfile("HealMe/Widgets.lua", "t", env))
     end
     local widgets = chunk()
