@@ -112,6 +112,22 @@ function Core:SetProfile(name)
     self.db.profile = profile
 end
 
+-- An earlier build chose its profile before the client would report a
+-- specialisation, leaving behind an empty character-only profile. Drop it, but
+-- only when it holds nothing: a player on a specless character legitimately
+-- uses that name, and their bindings are not ours to discard.
+function Core:PruneEmptyFallbackProfile()
+    local fallback = characterName()
+    if fallback == self.profileName then
+        return
+    end
+
+    local profile = HealMeDB.profiles[fallback]
+    if profile and #(profile.bindings or {}) == 0 then
+        HealMeDB.profiles[fallback] = nil
+    end
+end
+
 function Core:ProfileNames()
     local names = {}
     for name in pairs(HealMeDB.profiles) do
@@ -258,7 +274,11 @@ function Core:OnAddonLoaded()
         HealMeDB.ui.minimapHidden = false
     end
 
-    self:SetProfile(self:ProfileName())
+    -- Deliberately no profile selection here. ADDON_LOADED fires before the
+    -- client will answer questions about the player's specialisation, so
+    -- choosing a profile now yields a character-only name and never revisits
+    -- it: PLAYER_SPECIALIZATION_CHANGED does not fire merely for logging in.
+    -- The profile is chosen at PLAYER_LOGIN instead.
 end
 
 function Core:UISettings()
@@ -266,6 +286,12 @@ function Core:UISettings()
 end
 
 function Core:OnLogin()
+    -- Specialisation is readable by now, so this is where the real profile is
+    -- resolved. It happens before Secure applies anything, or the first apply
+    -- would use the wrong profile's bindings.
+    self:SetProfile(self:ProfileName())
+    self:PruneEmptyFallbackProfile()
+
     self.registryActive = ns.Registry:Initialize()
     if self.registryActive then
         ns.Secure:Initialize()
