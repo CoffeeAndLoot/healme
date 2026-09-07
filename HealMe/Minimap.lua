@@ -11,7 +11,6 @@ ns.MinimapButton = MinimapButton
 -- than in a profile: where the button sits is a property of the UI, not of a
 -- binding set, and it should not move when the player changes specialisation.
 
-local RADIUS = 80
 local DEFAULT_ANGLE = 200
 
 local button
@@ -20,14 +19,28 @@ local function settings()
     return ns.Core:UISettings()
 end
 
+-- Derived from the minimap's actual size rather than hardcoded. The usual
+-- constant of 80 is right only for the default 140px minimap; on a resized one
+-- a fixed radius puts the button inside the map instead of on its ring.
+local function ringRadius()
+    local width = Minimap:GetWidth()
+    if not width or width <= 0 then
+        width = 140
+    end
+    return (width / 2) + 10
+end
+
 local function positionButton()
     if not button then
         return
     end
 
     local angle = math.rad(settings().minimapAngle or DEFAULT_ANGLE)
+    local radius = ringRadius()
+
+    button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER",
-        math.cos(angle) * RADIUS, math.sin(angle) * RADIUS)
+        math.cos(angle) * radius, math.sin(angle) * radius)
 end
 
 local function angleFromCursor()
@@ -117,6 +130,17 @@ function MinimapButton:Initialize()
     end
     positionButton()
     self:Update()
+
+    -- The minimap can be resized in Edit Mode or by a UI scale change, and the
+    -- ring radius is derived from its width, so recompute when either happens
+    -- rather than leaving the button stranded until the next reload.
+    local watcher = CreateFrame("Frame")
+    watcher:RegisterEvent("UI_SCALE_CHANGED")
+    watcher:RegisterEvent("DISPLAY_SIZE_CHANGED")
+    if EditModeManagerFrame then
+        watcher:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
+    end
+    watcher:SetScript("OnEvent", positionButton)
 end
 
 function MinimapButton:Update()
