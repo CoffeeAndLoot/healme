@@ -7,11 +7,17 @@ on:
 permissions:
   contents: write
 
+env:
+  # Set as a repository secret to publish on Wago; leave unset to skip.
+  WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Check TOC version matches tag
         run: |
@@ -31,8 +37,66 @@ jobs:
           zip -qr "HealMe-${VERSION}.zip" HealMe -x "*.DS_Store"
           unzip -l "HealMe-${VERSION}.zip"
 
+      # Commits since the previous tag, as the changelog for every store.
+      - name: Write changelog
+        run: |
+          set -euo pipefail
+          PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          {
+            echo "## HealMe ${GITHUB_REF_NAME#v}"
+            echo
+            if [ -n "$PREV" ]; then
+              git log --no-merges --pretty='- %s' "${PREV}..${GITHUB_REF_NAME}"
+            else
+              git log --no-merges --pretty='- %s' "${GITHUB_REF_NAME}"
+            fi
+          } > CHANGELOG.md
+          cat CHANGELOG.md
+
       - name: Attach to GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: HealMe-${{ github.ref_name }}.zip
-          generate_release_notes: true
+          body_path: CHANGELOG.md
+
+      # Wago Addons. Runs only when the WAGO_API_TOKEN secret exists and the
+      # TOC carries an X-Wago-ID, so a fork without either still releases to
+      # GitHub. The retail patch label comes from Wago's own live list so it
+      # never needs a hand edit on patch day. A tag containing "beta" or
+      # "alpha" publishes at that stability.
+      - name: Publish to Wago
+        if: env.WAGO_API_TOKEN != ''
+        run: |
+          set -euo pipefail
+          WAGO_ID=$(sed -n 's/^## X-Wago-ID:[[:space:]]*//p' HealMe/HealMe.toc | tr -d '\r')
+          if [ -z "$WAGO_ID" ]; then
+            echo "No X-Wago-ID in the TOC; skipping Wago."
+            exit 0
+          fi
+
+          case "${GITHUB_REF_NAME}" in
+            *alpha*) STABILITY=alpha ;;
+            *beta*)  STABILITY=beta ;;
+            *)       STABILITY=stable ;;
+          esac
+
+          PATCH=$(curl -sf -H "Accept: application/json" https://addons.wago.io/api/data/game \
+            | python3 -c 'import json,sys; print(json.load(sys.stdin)["live_patches"]["supported_retail_patches"])')
+
+          LABEL="${GITHUB_REF_NAME#v}" STABILITY="$STABILITY" PATCH="$PATCH" python3 - > metadata.json <<'PY'
+          import json, os
+          print(json.dumps({
+              "label": os.environ["LABEL"],
+              "stability": os.environ["STABILITY"],
+              "changelog": open("CHANGELOG.md", encoding="utf-8").read(),
+              "supported_retail_patch": os.environ["PATCH"],
+          }))
+          PY
+
+          echo "Uploading to Wago project ${WAGO_ID} for retail ${PATCH} as ${STABILITY}"
+          curl -sf -X POST "https://addons.wago.io/api/projects/${WAGO_ID}/version" \
+            -H "Authorization: Bearer ${WAGO_API_TOKEN}" \
+            -H "Accept: application/json" \
+            -F "file=@HealMe-${GITHUB_REF_NAME}.zip" \
+            -F "metadata=<metadata.json"
+          echo

@@ -638,8 +638,11 @@ at load and falls back to "dev" outside the client.
 
 Tag-driven GitHub Actions, adapted from the workflow already proven in the
 `wow-addons` repo: on a `v*` tag, verify the TOC `## Version` matches the tag,
-zip the `HealMe/` folder, attach it to a GitHub release, and optionally upload
-to CurseForge when `CF_PROJECT_ID` is configured. WowUp installs directly from a
+zip the `HealMe/` folder, attach it to a GitHub release with a changelog of
+the commits since the previous tag, and publish the same zip to Wago Addons
+when the `WAGO_API_TOKEN` secret exists and the TOC carries an `X-Wago-ID`.
+The retail patch label is read from Wago's live list at release time. A tag
+containing `beta` or `alpha` publishes at that stability. WowUp installs directly from a
 GitHub Releases URL provided the zip contains the addon folder at its root,
 which this layout satisfies.
 
