@@ -13,6 +13,6 @@
     "Enum", "LibStub", "ScrollUtil",
     "GetMacroInfo", "GetStringFromModifiers", "ToggleClickBindingFrame",
     "Minimap", "GameTooltip", "GetCursorPosition", "EditModeManagerFrame",
-    "PlayerFrame", "CompactUnitFrame_SetUpFrame"
+    "PlayerFrame", "CompactUnitFrame_SetUpFrame", "C_XMLUtil"
   ]
 }

@@ -13,6 +13,7 @@ Registry.lua
 Secure.lua
 Serialize.lua
 Native.lua
+SelfTest.lua
 Help.lua
 Widgets.lua
 Options.lua

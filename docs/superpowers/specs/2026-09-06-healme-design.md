@@ -617,6 +617,18 @@ framework dependency):
 **Static analysis:** `luacheck` with `std = "lua51"` and the BigWigs WoW globals
 list, plus `.luarc.json` pinning Lua 5.1 for the Ketho VS Code API extension.
 
+### In-game self-test
+
+`SelfTest.lua` answers `/healme selftest` and the Settings tab's Run
+self-test button. It checks what is readable without secure privilege: the
+atlases and templates the panel needs, the registry and frame classes, spell
+validity, conflicts, profile rules, the wheel wiring, native click-casting,
+the export round trip, and above all the attributes actually on every
+registered frame against what the compiler and each binding's scope say
+should be there. With nothing enabled it applies a throwaway Target binding
+on Alt+Ctrl+Shift+Button 5, verifies it, and removes it. It refuses to run
+in combat. Whether a click casts remains the checklist's job.
+
 ## 18. Packaging and release
 
 Versions are calendar dates: `YYYY.MM.DD`, zero-padded, with a `.2` suffix

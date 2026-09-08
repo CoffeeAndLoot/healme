@@ -915,6 +915,16 @@ local function buildSettingsPage(f)
     y = y - 30
     y = y - 10
 
+    section("Diagnostics")
+    ui.selfTestButton = W.Button(inset, "Run self-test", 140, function()
+        ns.SelfTest.Run()
+    end)
+    ui.selfTestButton:SetPoint("TOPLEFT", X + 4, y)
+    y = y - 28
+    note("Checks the art, the registry, every binding, the attributes on every frame, "
+        .. "the wheel, and the export round trip. Prints a line per check to chat.")
+    y = y - 10
+
     section("Share bindings")
     ui.exportButton = W.Button(inset, "Export", 110, function()
         Options:ShowShare("export")

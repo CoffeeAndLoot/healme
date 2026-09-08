@@ -737,6 +737,11 @@ function Core:OnSlashCommand(input)
         return
     end
 
+    if command == "selftest" then
+        ns.SelfTest.Run()
+        return
+    end
+
     if command == "native" then
         local list = ns.Native.Bindings()
         if #list == 0 then
@@ -758,7 +763,7 @@ function Core:OnSlashCommand(input)
         return
     end
 
-    self:Print("usage: /healme [status | diag | simulate | profile [name] "
+    self:Print("usage: /healme [status | diag | selftest | simulate | profile [name] "
             .. "| bind <button> <spell> | native | clear]")
 end
 

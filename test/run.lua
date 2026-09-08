@@ -12,6 +12,7 @@ local modules = {
     { "Secure",    "HealMe/Secure.lua" },
     { "Serialize", "HealMe/Serialize.lua" },
     { "Native",    "HealMe/Native.lua" },
+    { "SelfTest",  "HealMe/SelfTest.lua" },
 }
 
 local ns = {}
@@ -33,6 +34,7 @@ local suites = {
     "test/test_registry.lua",
     "test/test_native.lua",
     "test/test_profiles.lua",
+    "test/test_selftest.lua",
 }
 
 for i = 1, #suites do

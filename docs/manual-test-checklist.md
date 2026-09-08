@@ -344,12 +344,24 @@ above:
 
 The automated text-edit tests cover callback behavior, not in-game rendering.
 
+## Self-test
+
+- [ ] `/healme selftest` out of combat prints all PASS apart from at most a
+      native click-casting WARN; the summary line shows 0 failed
+- [ ] With every binding disabled it probes with a throwaway binding and
+      prints two "frames carry exactly the attributes" passes
+- [ ] Scope a binding to Raid, run it again: still 0 failed (the player frame
+      is expected to be clear)
+- [ ] In combat it prints one line saying it waits, and nothing else
+- [ ] The Run self-test button on the Settings tab does the same
+
 ## Release checklist
 
 Run this section last, after every task section above has passed, before
 pushing a version tag.
 
 - [ ] Every earlier section in this file passes
+- [ ] `/healme selftest` reports 0 failed
 - [ ] Force each restriction scope and confirm no errors:
       `/console secretCombatRestrictionsForced 1`, then the challenge mode,
       encounter and PvP equivalents, testing click-casts under each
