@@ -23,15 +23,6 @@ bindings keep firing beside HealMe's, so clear the spells from Blizzard's
 Click Casting window; HealMe warns at login while any remain, and
 `/healme native` opens that window.
 
-## Install
-
-Download the latest zip from Releases and extract it into
-`World of Warcraft/_retail_/Interface/AddOns/`, or point WowUp at this
-repository's releases.
-
-HealMe will not run alongside Clique or Clicked — all three claim the same
-click-casting frames. Disable the others first.
-
 ## Use
 
 `/healme` opens the options panel. Add a binding, pick a button and a spell,
@@ -40,18 +31,14 @@ and click a unit frame.
 "Also target" makes a casting click switch your target too, so your action bar
 follows your mouse.
 
+HealMe will not run alongside Clique or Clicked; all three claim the same
+click-casting frames. Disable the others first.
+
 ## What it will never do
 
 Pick who to heal. Under Midnight's Secret Values system, addons cannot read
 health or aura state to make decisions — that information is deliberately opaque.
 HealMe wires up buttons; you aim them.
-
-## Development
-
-    lua test/run.lua      # unit tests
-    luacheck HealMe test  # lint
-
-The design spec is in `docs/superpowers/specs/`.
 
 ## Licence
 
