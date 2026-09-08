@@ -129,6 +129,20 @@ ns.Help = {
         },
     },
     {
+        title = "Bugs, questions and updates",
+        body = {
+            "HealMe lives on GitHub at github.com/CoffeeAndLoot/healme. New versions are "
+                .. "published there as releases, and WowUp can install and update from that "
+                .. "page.",
+            "Found a bug or want something added? Open an issue there. The " .. gold("Settings")
+                .. " tab has the link in a box you can copy with Ctrl+C. Before reporting, run "
+                .. gold("Run self-test") .. " on that tab and paste its output into the "
+                .. "report; it tells us most of what we would otherwise have to ask.",
+            "The game cannot open a web page itself, which is why the link is a box to copy "
+                .. "rather than a button.",
+        },
+    },
+    {
         title = "Slash commands",
         body = {
             "/healme opens this window. /healme status prints the version, profile and "

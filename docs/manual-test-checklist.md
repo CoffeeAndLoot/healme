@@ -226,7 +226,7 @@ steps above:
 
 ## Help tab
 
-- [ ] The Help tab lists nine topics as collapsible headers; Getting started
+- [ ] The Help tab lists ten topics as collapsible headers; Getting started
       opens by default and the rest are collapsed
 - [ ] Clicking a header opens it and closes the other; the text wraps inside
       the plate and the page scrolls when a topic runs long
@@ -400,6 +400,14 @@ it.
 - [ ] Re-ticking brings it back in the same position
 - [ ] Change specialisation: the button does NOT move and does NOT reappear if
       it was hidden
+
+## GitHub link
+
+- [ ] Settings tab, "Support": clicking the link box selects the whole URL
+      and Ctrl+C copies it; typing over it puts the URL back
+- [ ] The Settings tab's last section, Share bindings, sits fully inside the
+      plate at your UI scale
+- [ ] Help tab, "Bugs, questions and updates" reads correctly
 
 ## Diagnostics
 

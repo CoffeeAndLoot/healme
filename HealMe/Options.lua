@@ -890,7 +890,7 @@ local function buildSettingsPage(f)
     ui.alsoTarget:SetPoint("TOPLEFT", X, y)
     y = y - 28
     note("A casting click also switches your target, so your action bar follows your mouse.")
-    y = y - 10
+    y = y - 4
 
     section("Minimap")
     ui.minimap = W.Checkbox(inset, "Show minimap button", function(value)
@@ -899,7 +899,7 @@ local function buildSettingsPage(f)
     ui.minimap:SetPoint("TOPLEFT", X, y)
     y = y - 28
     note("The button opens this window. Right-click it to toggle Also target.")
-    y = y - 10
+    y = y - 4
 
     -- Blizzard's own click-casting runs beside HealMe; a native spell
     -- binding fires on every frame whatever HealMe's scope says. Show what
@@ -913,17 +913,22 @@ local function buildSettingsPage(f)
     ui.nativeNote = W.Note(inset, nil, 520)
     ui.nativeNote:SetPoint("TOPLEFT", X + 30, y)
     y = y - 30
-    y = y - 10
+    y = y - 4
 
-    section("Diagnostics")
+    -- The self-test and the place to send its output share a row: a bug
+    -- report is the self-test lines plus that link.
+    section("Support")
     ui.selfTestButton = W.Button(inset, "Run self-test", 140, function()
         ns.SelfTest.Run()
     end)
     ui.selfTestButton:SetPoint("TOPLEFT", X + 4, y)
+    ui.repoLink = W.LinkBox(inset, 330, "https://github.com/CoffeeAndLoot/healme")
+    ui.repoLink:SetPoint("LEFT", ui.selfTestButton, "RIGHT", 16, 0)
     y = y - 28
-    note("Checks the art, the registry, every binding, the attributes on every frame, "
-        .. "the wheel, and the export round trip. Prints a line per check to chat.")
-    y = y - 10
+    note("The self-test checks the art, registry, bindings, every frame's attributes, the "
+        .. "wheel and the export, and prints a line per check. Releases, source and bug "
+        .. "reports live at the link; click it and press Ctrl+C to copy.")
+    y = y - 4
 
     section("Share bindings")
     ui.exportButton = W.Button(inset, "Export", 110, function()

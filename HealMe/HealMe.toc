@@ -2,6 +2,8 @@
 ## Title: HealMe
 ## Notes: Mouse click-casting for healers.
 ## Author: CoffeeAndLoot
+## X-Website: https://github.com/CoffeeAndLoot/healme
+## X-Issues: https://github.com/CoffeeAndLoot/healme/issues
 ## IconTexture: Interface\AddOns\HealMe\Media\icon
 ## Version: 2026.09.07
 ## SavedVariables: HealMeDB

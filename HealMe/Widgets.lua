@@ -301,6 +301,27 @@ function Widgets.Checkbox(parent, text, onToggle)
     return c
 end
 
+-- A URL the player can copy. The game cannot open a browser, so the
+-- convention is a text box that selects itself on click; Ctrl+C then works.
+-- Typing is undone so the link cannot be lost.
+function Widgets.LinkBox(parent, width, url)
+    local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    e:SetSize(width, 22)
+    e:SetAutoFocus(false)
+    e:SetText(url)
+    e:SetCursorPosition(0)
+    e:SetScript("OnEditFocusGained", function(self) self:HighlightText() end)
+    e:SetScript("OnTextChanged", function(self, userInput)
+        if userInput and self:GetText() ~= url then
+            self:SetText(url)
+            self:HighlightText()
+        end
+    end)
+    e:SetScript("OnEnterPressed", function(self) self:ClearFocus() end)
+    e:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+    return e
+end
+
 function Widgets.EditBox(parent, width, onCommit, onCancel)
     local e = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
     e:SetSize(width, 22)
