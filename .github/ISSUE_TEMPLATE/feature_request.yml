@@ -1,0 +1,25 @@
+name: Feature request
+description: Something you wish HealMe did
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One thing to know before asking: since Midnight, addons cannot read health or auras in combat, so conditions like "only below 40% health" or "only if they have a magic debuff" cannot be built by any addon. Anything expressible as a macro conditional is fair game.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The healing situation, not the feature. What are you clicking, on whom, and what should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today
+      description: The workaround, if any, and where it falls short.
+  - type: textarea
+    id: idea
+    attributes:
+      label: How you imagine it working
+      description: Optional. A control on which tab, a slash command, a new condition, whatever you pictured.

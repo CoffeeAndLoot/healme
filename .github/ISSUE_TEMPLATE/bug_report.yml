@@ -1,0 +1,60 @@
+name: Bug report
+description: Something HealMe does wrong in the game
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The self-test output and the exact error text are what make a bug findable, so please include both where you can.
+  - type: input
+    id: version
+    attributes:
+      label: HealMe version
+      description: From `/healme status`, or the Version line in HealMe.toc
+      placeholder: "2026.09.07"
+    validations:
+      required: true
+  - type: input
+    id: wow
+    attributes:
+      label: WoW build
+      description: Bottom-left of the login screen, or `/dump GetBuildInfo()`
+      placeholder: "12.1.0 (12345)"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Which frame you clicked matters; your own party-frame entry is a Party frame, not the Player frame.
+    validations:
+      required: true
+  - type: textarea
+    id: selftest
+    attributes:
+      label: Self-test output
+      description: Run `/healme selftest` out of combat and paste every line.
+      render: text
+  - type: textarea
+    id: error
+    attributes:
+      label: Lua error
+      description: The full text from BugSack, or from the error window with `/console scriptErrors 1`. Leave blank if there was none.
+      render: text
+  - type: textarea
+    id: export
+    attributes:
+      label: Export string
+      description: Optional. Settings tab, Export. Lets us reproduce your exact bindings.
+      render: text
+  - type: dropdown
+    id: frames
+    attributes:
+      label: Unit frames in use
+      options:
+        - Blizzard default
+        - ElvUI
+        - Cell
+        - Grid2
+        - VuhDo
+        - Other (say which above)
