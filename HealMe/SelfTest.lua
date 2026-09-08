@@ -111,6 +111,9 @@ local function checkRegistry(r)
         return false
     end
     r("pass", "secure header present")
+    local shim = Clique and Clique.header == Registry.header
+    r(shim and "pass" or "warn", shim and "Clique shim points at the header"
+        or "Clique shim missing: older frame addons will not self-register")
 
     local count = Registry:Count()
     r(count > 0 and "pass" or "fail", count .. " frames registered")

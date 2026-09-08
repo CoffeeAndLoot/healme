@@ -1,8 +1,15 @@
 # HealMe manual test checklist
 
-Automated tests cover `Compiler`, `Bindings`, and `Serialize`. Everything that
-touches the WoW API is verified here. Run the whole list before tagging a
-release; run the section named by a task after finishing that task.
+Automated tests cover the pure modules. `/healme selftest` covers everything
+that can be read back from the client without clicking: the art, the
+registry, every binding, the attributes on every frame, the wheel wiring,
+native click-casting and the export round trip. Everything that only a real
+click, cast or group change can prove is verified here.
+
+**Run `/healme selftest` first, out of combat, and expect 0 failed.** Steps
+below marked *(self-test)* are what it checks for you; tick them off from
+its output rather than by hand. Run the whole list before tagging a release;
+run the section named by a task after finishing that task.
 
 Setup: `/console scriptErrors 1`, and install BugSack + BugGrabber.
 
@@ -25,18 +32,14 @@ Setup: `/console scriptErrors 1`, and install BugSack + BugGrabber.
 ## Task 8 — frame registration
 
 - [ ] `/reload` in a raid or party produces no Lua errors
-- [ ] `/dump ClickCastHeader ~= nil` prints true
-- [ ] `/dump Clique.header ~= nil` prints true
-- [ ] `/run local n=0 for f in HealMeNS.Registry:IterateFrames() do n=n+1 end print(n)`
-      prints a count greater than zero, and larger in a raid than solo
+- [ ] *(self-test)* "secure header present", "Clique shim points at the
+      header", and a frame count of at least 4 solo (player, target, focus,
+      pet exist even solo; target and focus register whether or not a unit
+      is selected)
+- [ ] Join a 5-player group and run the self-test again: the frame count
+      rises
 - [ ] Enable Clique or Clicked, reload: HealMe prints the conflict message and
       does not install the header
-
-In-game, solo: `/reload`, then run each `/dump` and `/run` above.
-Expected: `true`, `true`, and a frame count of at least 4 (player, target,
-focus, pet frames exist even solo; target/focus frames register regardless of
-whether a unit is selected). Join a 5-player group and re-run: the count must
-rise.
 
 ## Task 9 — click-casting works
 
@@ -149,8 +152,9 @@ steps above:
 - [ ] The window has the round portrait, gold title bar, the dark scene and
       gold filigree in all four corners like the Housing dashboard; the tabs,
       dropdowns and group headers match the game's own
-- [ ] No white squares anywhere: a white square means an atlas name the
-      client does not know
+- [ ] *(self-test)* every atlas and template known. Still look once for a
+      white square: the self-test proves the names, the eye proves the
+      anchors
 - [ ] The "Also target" toggle on the Settings tab changes behaviour immediately: with it on, a
       heal click also switches your target
 - [ ] Switching specialisation swaps the binding list, and the profile picker
@@ -171,6 +175,8 @@ steps above:
 - [ ] Create two bindings on the same button and modifiers, disable one, then
       re-enable it. Expect the conflict message and the binding to stay
       disabled.
+- [ ] *(self-test)* "every spell is known" and "no two enabled bindings share
+      a combination" after the edits above
 
 ## Profiles tab
 
@@ -202,6 +208,7 @@ steps above:
       sticks until the next group or spec change
 - [ ] Rename the raid profile: the dropdown follows. Delete it: the slot
       returns to Default
+- [ ] *(self-test)* "profile rules point at real profiles"
 - [ ] Log out and back in while in a raid: the raid profile is active from
       the start
 
@@ -213,6 +220,7 @@ steps above:
       button; the button opens Blizzard's window
 - [ ] Clear the native spells there and Save: the Settings line turns grey
       and says only HealMe casts; the next /reload prints nothing
+- [ ] *(self-test)* WARN naming the bindings while any remain, PASS after
 - [ ] With native clear, a Party, Raid scoped bind right-clicked on the
       player portrait opens the context menu instead of casting
 
@@ -228,13 +236,15 @@ steps above:
 
 - [ ] In an instance with enemy nameplates on, mount, travel and pull: no
       error from Registry.lua about a forbidden object
-- [ ] `/healme status` frame count does not climb as nameplates spawn
+- [ ] *(self-test)* "0 nameplates in the registry" after plates have spawned
 
 ## Frame scope
 
 - [ ] On a binding, open "On frames" and untick everything but Party and
       Raid. The button reads "Party, Raid" and the list subline says "on
       Party, Raid"
+- [ ] *(self-test)* "frames carry exactly the attributes their scope allows"
+      with the scoped binding enabled: the player frame is expected clear
 - [ ] With that scope, the bind fires on a party or raid frame and does
       nothing on your own player frame or on the target frame
 - [ ] Tick Player back on: the bind fires on the player frame immediately,
@@ -245,7 +255,9 @@ steps above:
 - [ ] Scope a wheel binding to Raid only. Scroll over a raid frame: fires.
       Scroll over the player frame: nothing, and the wheel zooms the camera
       as normal
-- [ ] Export, then import the string: the scope survives the round trip
+- [ ] *(self-test)* "export round-trips N bindings" with a scoped binding
+      present
+- [ ] Import that string into another profile: the scope shows in the list
 - [ ] Import a string made before this version (no frames field): every
       binding applies to all frames
 
@@ -346,14 +358,14 @@ The automated text-edit tests cover callback behavior, not in-game rendering.
 
 ## Self-test
 
-- [ ] `/healme selftest` out of combat prints all PASS apart from at most a
-      native click-casting WARN; the summary line shows 0 failed
+The self-test's own behaviour, as opposed to what it checks for you above.
+
 - [ ] With every binding disabled it probes with a throwaway binding and
-      prints two "frames carry exactly the attributes" passes
-- [ ] Scope a binding to Raid, run it again: still 0 failed (the player frame
-      is expected to be clear)
+      prints two "frames carry exactly the attributes" passes, and no
+      binding is left behind in the list
 - [ ] In combat it prints one line saying it waits, and nothing else
-- [ ] The Run self-test button on the Settings tab does the same
+- [ ] The Run self-test button on the Settings tab does the same as the
+      command
 
 ## Release checklist
 
@@ -394,8 +406,8 @@ it.
 These exist because `WrapScript` leaves no readable mark on a frame, so whether
 the wheel handlers were attached cannot be seen any other way.
 
-- [ ] `/healme diag` reports registered and wheel-wrapped frame counts, and they
-      match
+- [ ] *(self-test)* "N of N frames have wheel wrappers", "wheel proxy button
+      exists", "wheel hover snippet installed"
 - [ ] `/healme diag` reports the compiled attribute count, which should be three
       per enabled spell binding
 - [ ] `/healme simulate` prints PASS. It deregisters and re-registers the player
