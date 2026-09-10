@@ -28,10 +28,25 @@ Core.version = tocVersion()
 local function defaultProfile()
     return {
         bindings = {},
+        bar = {},
         settings = {
             alsoTarget = false,
         },
     }
+end
+
+-- Bar placement is a habit of the interface, like the minimap angle, so it
+-- lives in the account-wide ui table rather than in a profile.
+local function seedUI()
+    HealMeDB.ui = HealMeDB.ui or {}
+    local bar = HealMeDB.ui.bar or {}
+    HealMeDB.ui.bar = bar
+    if bar.side ~= "below" then
+        bar.side = "above"
+    end
+    if type(bar.size) ~= "number" then
+        bar.size = 36
+    end
 end
 
 function Core:Print(msg)
@@ -114,12 +129,15 @@ function Core:SetProfile(name)
         return
     end
 
+    seedUI()
+
     HealMeDB.profiles[name] = HealMeDB.profiles[name] or defaultProfile()
 
     local profile = HealMeDB.profiles[name]
     -- A profile saved by an older version may predate a field, and saved
     -- variables are whatever was on disk, so fill gaps rather than trusting it.
     profile.bindings = profile.bindings or {}
+    profile.bar = profile.bar or {}
     profile.settings = profile.settings or {}
     if profile.settings.alsoTarget == nil then
         profile.settings.alsoTarget = false
@@ -162,6 +180,10 @@ function Core:CopyProfileFrom(sourceName)
 
     local copy = defaultProfile()
     copy.settings.alsoTarget = source.settings and source.settings.alsoTarget or false
+
+    for i = 1, #(source.bar or {}) do
+        copy.bar[i] = source.bar[i]
+    end
 
     for i = 1, #(source.bindings or {}) do
         local record = source.bindings[i]
@@ -396,6 +418,45 @@ function Core:Settings()
     return self.db.profile.settings
 end
 
+function Core:Bar()
+    return self.db.profile.bar
+end
+
+-- Adding goes through the bar's own rules (known spell, no duplicates, slot cap).
+function Core:AddBarSpell(name)
+    local list = self:Bar()
+    local ok, err = ns.Bar.Validate(list, name, function(spell)
+        return Core:SpellExists(spell)
+    end)
+    if not ok then
+        return false, err
+    end
+    list[#list + 1] = name
+    self:NotifyChanged()
+    return true
+end
+
+function Core:RemoveBarSpell(index)
+    local list = self:Bar()
+    if not list[index] then
+        return false
+    end
+    table.remove(list, index)
+    self:NotifyChanged()
+    return true
+end
+
+function Core:MoveBarSpell(index, delta)
+    local list = self:Bar()
+    local target = index + delta
+    if not list[index] or not list[target] then
+        return false
+    end
+    list[index], list[target] = list[target], list[index]
+    self:NotifyChanged()
+    return true
+end
+
 function Core:SpellExists(name)
     if type(name) ~= "string" or name == "" then
         return false
@@ -467,6 +528,8 @@ function Core:OnAddonLoaded()
     if HealMeDB.ui.minimapHidden == nil then
         HealMeDB.ui.minimapHidden = false
     end
+
+    seedUI()
 
     -- Deliberately no profile selection here. ADDON_LOADED fires before the
     -- client will answer questions about the player's specialisation, so
