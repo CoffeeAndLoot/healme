@@ -151,7 +151,9 @@ local function createButton(i)
             GameTooltip:Hide()
         end
     end)
-    b:Hide()
+    -- No Hide() here: the button starts unanchored (no SetPoint yet), so it
+    -- has no rectangle and renders nothing. Apply owns all visibility under
+    -- the InCombatLockdown() guard.
     return b
 end
 
@@ -287,7 +289,9 @@ function Bar:Initialize()
         return
     end
     container = CreateFrame("Frame", "HealMeBar", UIParent)
-    container:Hide()
+    -- No Hide() here: the container starts unanchored (no SetPoint yet), so
+    -- it has no rectangle and renders nothing. Apply owns all visibility
+    -- under the InCombatLockdown() guard.
     for i = 1, Bar.MAX_SLOTS do
         buttons[i] = createButton(i)
     end

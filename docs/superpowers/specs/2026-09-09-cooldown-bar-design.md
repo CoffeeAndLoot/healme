@@ -111,9 +111,12 @@ returns; the bar's own event frame calls it on `PLAYER_REGEN_ENABLED`, keeping
 the module self-contained. Out of combat it:
 
 1. Reads the active profile's `bar` list and `HealMeDB.ui.bar`.
-2. For each slot `i`: if `bar[i]` resolves, writes `type=spell`,
-   `spell=<name>`, stores the spell ID on the button, sets the icon, shows
-   the button. Otherwise clears the attributes and hides it.
+2. For each slot `i`: if `bar[i]` is a name that resolves, writes
+   `type=spell`, `spell=<name>`, stores the spell ID on the button, sets the
+   icon, shows the button. If `bar[i]` is a name that does not resolve, the
+   slot keeps its place, greyed with a question-mark icon: the attributes
+   are cleared and the button stays shown with no icon tint. A slot past the
+   end of the list is hidden.
 3. Resizes the container and re-anchors it (§6).
 4. Refreshes cooldowns for every visible slot.
 
