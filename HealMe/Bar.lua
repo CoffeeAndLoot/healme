@@ -172,14 +172,53 @@ local function createButton(i)
     return b
 end
 
--- Optional display features. Each runs in its own pcall and switches
--- itself off after a first failure, so a value the client makes secret
--- costs that feature, never the swipe and never an error per event.
-local features = { charges = true, usable = true }
+-- Display features. Each runs in its own pcall and switches itself off,
+-- with one printed line, after a first failure: a value the client makes
+-- secret costs that feature for the session, never an error per event.
+--
+-- Midnight makes cooldown and charge data Secret Values whenever combat,
+-- encounter, challenge mode or PvP restrictions are in effect, and the
+-- cooldown frame's SetCooldown refuses a secret from tainted code. The
+-- sanctioned addon path is C_Spell.GetSpellCooldownDuration, an opaque
+-- duration object handed straight to SetCooldownFromDurationObject with
+-- nothing read out of it (Blizzard_APIDocumentationGenerated/
+-- SpellDocumentation.lua and FrameAPICooldownDocumentation.lua, live).
+local features = { swipe = true, charges = true, usable = true }
+
+local function showSwipe(b)
+    if C_Spell.GetSpellCooldownDuration and b.cooldown.SetCooldownFromDurationObject then
+        local duration = C_Spell.GetSpellCooldownDuration(b.spellID)
+        if duration then
+            b.cooldown:SetCooldownFromDurationObject(duration)
+        else
+            b.cooldown:Clear()
+        end
+        return
+    end
+    -- A client without duration objects: values are plain there.
+    local info = C_Spell.GetSpellCooldown(b.spellID)
+    if info and info.isActive then
+        b.cooldown:SetCooldown(info.startTime, info.duration, info.modRate)
+    else
+        b.cooldown:Clear()
+    end
+end
+
+-- Whether a spell has charges is decided in Apply, out of combat, where
+-- GetSpellCharges answers plainly. The refresh only displays the count:
+-- SetText accepts a secret, a comparison would not.
+local function hasCharges(id)
+    local charges = C_Spell.GetSpellCharges and C_Spell.GetSpellCharges(id)
+    return charges and charges.maxCharges and charges.maxCharges > 1 or false
+end
 
 local function showCharges(b)
-    local charges = C_Spell.GetSpellCharges and C_Spell.GetSpellCharges(b.spellID)
-    if charges and charges.maxCharges and charges.maxCharges > 1 then
+    if not b.hasCharges then
+        b.count:Hide()
+        return
+    end
+    local charges = C_Spell.GetSpellCharges(b.spellID)
+    if charges then
         b.count:SetText(charges.currentCharges)
         b.count:Show()
     else
@@ -205,31 +244,25 @@ local function optional(name, fn, b)
     if not features[name] then
         return
     end
-    local ok = pcall(fn, b)
+    local ok, err = pcall(fn, b)
     if not ok then
         features[name] = false
+        if name == "swipe" then b.cooldown:Clear() end
         if name == "charges" then b.count:Hide() end
         if name == "usable" then b.icon:SetVertexColor(1, 1, 1) end
+        if ns.Core and ns.Core.Print then
+            ns.Core:Print("cooldown bar " .. name .. " display off for this session: " .. tostring(err))
+        end
     end
 end
 
--- Display only. Start, duration and modRate go straight into the cooldown
--- frame, which accepts Secret Values; nothing here compares them. Mirrors
--- ActionButton_ApplyCooldown in Blizzard_ActionBar/Shared/ActionButton.lua.
 local function refreshButton(b)
     if not b.spellID then
         b.cooldown:Clear()
         b.count:Hide()
         return
     end
-
-    local info = C_Spell.GetSpellCooldown(b.spellID)
-    if info and info.isActive then
-        b.cooldown:SetCooldown(info.startTime, info.duration, info.modRate)
-    else
-        b.cooldown:Clear()
-    end
-
+    optional("swipe", showSwipe, b)
     optional("charges", showCharges, b)
     optional("usable", tintUsable, b)
 end
@@ -302,6 +335,10 @@ function Bar:Apply()
             b:SetAttribute("spell", nil)
         end
         b.spellID = id
+        -- Guarded: encounter or challenge-mode restrictions can make the
+        -- charge data secret even between pulls.
+        local okCharges, charged = pcall(hasCharges, id)
+        b.hasCharges = id and okCharges and charged or false
         if name then
             b.icon:SetTexture(id and C_Spell.GetSpellTexture(id) or FALLBACK_ICON)
             b.icon:SetDesaturated(id == nil)

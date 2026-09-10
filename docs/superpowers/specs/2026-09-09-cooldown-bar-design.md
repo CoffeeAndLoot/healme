@@ -34,17 +34,22 @@ The hard constraints in the main spec §3 apply unchanged:
 - Buttons are `SecureActionButtonTemplate`. Attribute writes, Show/Hide, and
   reparenting go through the bar's own combat queue, flushed on
   `PLAYER_REGEN_ENABLED`. Never direct.
-- Cooldown data comes from `C_Spell.GetSpellCooldown` and
-  `C_Spell.GetSpellCharges`, and is passed **untouched** into
-  `Cooldown:SetCooldown(start, duration, modRate)`. That is what Blizzard's own
-  `ActionButton_ApplyCooldown` does (`Blizzard_ActionBar/Shared/ActionButton.lua`,
-  `live`, read 2026-09-09). The cooldown frame accepts Secret Values; HealMe
-  never compares or does arithmetic on them. `isActive` is used only as a
-  truthy check, as Blizzard does.
-- Usability dimming reads `C_Spell.IsSpellUsable` and sets a vertex colour.
-  Display only. Charge count and usability tint each run in their own
-  protected call and switch off for the session after a first failure, so a
-  value the client makes secret can never cost the swipe.
+- Cooldown and charge data are Secret Values whenever combat, encounter,
+  challenge-mode or PvP restrictions are in effect (`SecretWhenCooldownsRestricted`
+  in `SpellDocumentation.lua`), and `Cooldown:SetCooldown` refuses a secret
+  from tainted code. The sanctioned addon path is
+  `C_Spell.GetSpellCooldownDuration`, an opaque duration object handed
+  straight to `Cooldown:SetCooldownFromDurationObject`; HealMe never reads a
+  number out of it. Blizzard's own aura buttons use the same call
+  (`Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua`, `live`, read
+  2026-09-10). Whether a spell has charges is decided in `Apply`, out of
+  combat, where `C_Spell.GetSpellCharges` answers plainly; the refresh only
+  passes the current count to `SetText`, which accepts a secret.
+- Usability dimming reads `C_Spell.IsSpellUsable`, which carries no secrecy
+  flag, and sets a vertex colour. Display only.
+- Swipe, charge count and usability tint each run in their own protected
+  call and switch off for the session after a first failure, printing one
+  line, so a surprise never becomes an error per event.
 
 ## 4. Data model
 
@@ -222,7 +227,7 @@ In-game (`docs/manual-test-checklist.md` gains a "Cooldown bar" section):
 - Add two spells, see icons appear above the raid frames.
 - Switch side to below; switch size; bar follows.
 - Drag the raid frames in Edit Mode; bar follows on exit.
-- Pull a mob; cooldown swipe and countdown show; click casts.
+- Pull a mob; cooldown swipe and countdown show with no Lua error; click casts.
 - Change spec; bar swaps with the profile.
 - Join a raid mid-combat; bar re-anchors after combat drops.
 - Leave group; bar hides.
@@ -242,11 +247,22 @@ matches the profile.
 
 ## 11. Sources
 
-Read directly on 2026-09-09.
+Read directly on 2026-09-09 and 2026-09-10 from `Gethe/wow-ui-source` @
+`live`.
 
-- `Blizzard_ActionBar/Shared/ActionButton.lua`, `Gethe/wow-ui-source` @
-  `live`: `ActionButton_UpdateCooldown` (lines 823-843) and
-  `ActionButton_ApplyCooldown` (853-867) for the cooldown API shape and the
-  fact that start / duration / modRate are passed through untouched.
-- `C_Spell.IsSpellUsable` and `C_Spell.GetSpellCharges` return values are
-  guarded rather than assumed plain, pending an in-client check on 12.1.
+- `Blizzard_APIDocumentationGenerated/SpellDocumentation.lua`:
+  `GetSpellCooldown` and `GetSpellCharges` carry
+  `SecretWhenCooldownsRestricted`; `GetSpellCooldownDuration` returns a
+  `LuaDurationObject`; `IsSpellUsable` carries no secrecy predicate.
+- `Blizzard_APIDocumentationGenerated/FrameAPICooldownDocumentation.lua`:
+  `SetCooldown` and `SetCooldownFromDurationObject` are both
+  `AllowedWhenUntainted` for secret arguments, which is why a raw secret
+  start time from addon code is refused and the opaque object is not.
+- `Blizzard_APIDocumentationGenerated/SecretPredicatesDocumentation.lua`:
+  `SecretWhenCooldownsRestricted` means combat, encounter, challenge mode or
+  PvP match restrictions.
+- `Blizzard_AuraContainer/Blizzard_CustomAuraButton.lua` (line 520):
+  Blizzard applying a duration object with `SetCooldownFromDurationObject`.
+- `Blizzard_ActionBar/Shared/ActionButton.lua`: `ActionButton_ApplyCooldown`
+  (853-867), the untainted path that passes raw values; not usable from an
+  addon, kept as the reference for the fallback branch.

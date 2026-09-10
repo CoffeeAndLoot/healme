@@ -430,6 +430,9 @@ on screen.
 - [ ] Hover a button: the spell tooltip shows
 - [ ] Click a button out of combat: the spell casts
 - [ ] Pull a mob, click a button: it casts, and the swipe and countdown run
+- [ ] While in combat, no Lua error appears and no "cooldown bar ... display
+      off" line prints; a spell with charges (Swiftmend, Holy Word) shows its
+      count on the button
 - [ ] Click a bar button bound to a cast-time spell (Tranquility, Divine
       Hymn): exactly one cast starts, no double GCD
 - [ ] While in combat, open the Bar tab and add a spell: the new button
