@@ -128,9 +128,14 @@ D:\healme\
     Compiler.lua
     Secure.lua
     Bindings.lua
+    Bar.lua
+    Serialize.lua
+    Native.lua
+    SelfTest.lua
+    Help.lua
     Widgets.lua
     Options.lua
-    Serialize.lua
+    Minimap.lua
     Media\icon.tga
   .github\workflows\release-addon.yml
   test\                         <- desktop Lua tests
@@ -146,7 +151,7 @@ TOC header:
 ```
 ## Interface: 120007, 120100
 ## Title: HealMe
-## Notes: Mouse click-casting for healers.
+## Notes: Mouse click-casting and a raid-frame cooldown bar for healers.
 ## Author: <handle>
 ## Version: 0.1.0
 ## SavedVariables: HealMeDB
@@ -281,6 +286,20 @@ settings = {
 kind of thing a player wants on or off as a habit, not per bind, and keeping it
 out of the record means the binding list stays readable. §19 records the seam if
 per-binding control is ever wanted.
+
+The cooldown bar's spell list sits beside the bindings, so it swaps with the
+profile:
+
+```lua
+bar = { "Tranquility", "Nature's Swiftness" }   -- ordered spell names, at most 12
+```
+
+Account-wide interface state lives outside the profiles in `HealMeDB.ui`:
+the minimap button's angle and hidden flag, and the bar's placement,
+`ui.bar = { side = "above" | "below", size = 36 }`. Where a control sits is a
+habit of the interface, not of a binding set, and must not move on a spec
+change. The companion spec `2026-09-09-cooldown-bar-design.md` §4 has the
+bar's validation rules.
 
 Validation rules enforced by `Bindings.lua` before a record is accepted:
 
@@ -471,9 +490,9 @@ the addon.
 
 Layout:
 
-- The tab strip holds **Bindings** and **Settings** on the left and the
-  **profile picker** on the right, which switches profiles the same way
-  `/healme profile <name>` does.
+- The tab strip holds **Bindings**, **Bar**, **Settings**, **Profiles** and
+  **Help** on the left and the **profile picker** on the right, which
+  switches profiles the same way `/healme profile <name>` does.
 - **Bindings** is two columns over the scene. The left is a translucent plate
   holding the binding list grouped by mouse button, quest-log style: a
   collapsible header per button with a count, and spellbook-style rows
@@ -493,6 +512,12 @@ Layout:
   Below it, **On frames** is a checkbox menu of frame kinds; the button reads
   "All frames" or the ticked kinds. Every kind ticked is stored as no limit,
   and Validate refuses an empty set, so the last box cannot be unticked.
+- **Bar** mirrors Profiles: a list of the cooldown bar's spells with icons,
+  a spellbook picker and a name field with Add under it, and a plate for the
+  selected spell with Move up, Move down and Remove (through the confirm
+  popup). Under that, **Placement**: Side and Size dropdowns, stored
+  account-wide. A spell the current spec does not know shows red with a
+  dimmed icon and keeps its slot. See `2026-09-09-cooldown-bar-design.md` §7.
 - **Help** is one plate of quest-log style headers, one per topic from
   `Help.lua`, a plain data file of titles and paragraphs. One topic is open
   at a time; the first opens by default.
@@ -600,7 +625,14 @@ framework dependency):
   and that `macro`, `target`, `focus`, and `menu` are left untouched.
 - `Bindings` validation rules: mutual exclusion, duplicate key detection, macro
   length, spell validation via an injected stub.
-- Round-trip: `Serialize.Export(profile)` → `Import` → identical table.
+- Round-trip: `Serialize.Export(profile)` → `Import` → identical table,
+  including the bar's `c^` records and a pre-bar string decoding to an empty
+  bar.
+- `Bar` pure helpers: anchor target for every group state, slot layout,
+  add-validation (blank, unknown, duplicate, full), import sanitising, size
+  clamping.
+- `Core` bar accessors: seeding on old profiles and old `ui`, add, remove,
+  move, copy with the profile.
 
 **Manual checklist** (`docs/manual-test-checklist.md`), run in-game:
 

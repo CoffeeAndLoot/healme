@@ -54,7 +54,14 @@ ns.Help = {
                 .. "on an action bar.",
             "The bar is part of the profile, so it swaps with your specialisation. "
                 .. gold("Side") .. " and " .. gold("Size") .. " are shared by every profile. "
-                .. "The bar hides while solo and with raid frames from another addon.",
+                .. "The bar hides while solo and with raid frames from another addon. In a "
+                .. "raid it lines up with the left edge of the raid container, which is the "
+                .. "main-tank column when you show one.",
+            "Like the game's action bars, every button swipes briefly on the global "
+                .. "cooldown after any cast. A spell your current spec does not know keeps its "
+                .. "slot, greyed, until you switch back. If a chat line ever says a bar display "
+                .. "is off for the session, the game refused a value; the buttons still cast, "
+                .. "and the line is worth pasting into a bug report.",
         },
     },
     {
@@ -160,8 +167,8 @@ ns.Help = {
     {
         title = "Slash commands",
         body = {
-            "/healme opens this window. /healme status prints the version, profile and "
-                .. "frame count. /healme profile lists profiles; /healme profile <name> "
+            "/healme opens this window. /healme status prints the version, profile, "
+                .. "binding and bar counts and the frame count. /healme profile lists profiles; /healme profile <name> "
                 .. "switches to one, creating it if needed.",
             "/healme native opens the game's click-casting window. /healme diag prints "
                 .. "how the wheel is wired. /healme clear removes every binding from the "

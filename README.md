@@ -32,6 +32,26 @@ and click a unit frame.
 "Also target" makes a casting click switch your target too, so your action bar
 follows your mouse.
 
+## The cooldown bar
+
+The **Bar** tab puts a row of spell buttons directly above or below Blizzard's
+raid or party frames, so raid-wide cooldowns such as Tranquility, Halo or
+Divine Hymn sit where a healer is already looking. Each button shows the
+spell's icon, cooldown swipe, countdown and charge count, and casts when
+clicked. Buttons cast with no target, so a spell that needs one goes to your
+current target, the same as pressing it on an action bar.
+
+Add a spell from the spellbook picker or by typing its name, select a row to
+move or remove it, and pick a side and button size. The spell list belongs to
+the profile, so it swaps with your specialisation; side and size are shared.
+The bar hides while you are solo, and it needs Blizzard's own raid or party
+frames on screen: with Grid2, VuhDo or ElvUI raid frames it has nothing to
+attach to and stays hidden. In a raid it lines up with the left edge of the
+raid container, which is the main-tank column when you show one.
+
+Like Blizzard's action bars, every button briefly swipes on the global
+cooldown after any cast.
+
 HealMe will not run alongside Clique or Clicked; all three claim the same
 click-casting frames. Disable the others first.
 

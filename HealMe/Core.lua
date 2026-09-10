@@ -644,6 +644,7 @@ function Core:OnSlashCommand(input)
         self:Print("version " .. self.version)
         self:Print("profile: " .. tostring(self.profileName))
         self:Print("bindings: " .. #self:Bindings())
+        self:Print("bar: " .. #self:Bar())
         self:Print("also target: " .. tostring(self:Settings().alsoTarget))
         self:Print("frames registered: " .. (ns.Registry and ns.Registry:Count() or 0))
         return

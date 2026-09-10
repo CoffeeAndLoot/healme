@@ -22,6 +22,10 @@ already are, instead of down on the action bars.
   spellbook, no macros, no items. A dozen slots at most.
 - **Not a raid-frame addon.** It anchors to frames Blizzard draws. If those
   frames are absent, it hides.
+- **Not quieter than an action bar.** The duration object includes the global
+  cooldown, so every button swipes briefly after any cast, exactly as
+  Blizzard's action buttons do. §10 records the one-argument seam if that
+  ever grates.
 
 The main spec's scope line "bindings that fire without a frame under the
 cursor" is amended: the bar is exactly that, and is the one sanctioned place
@@ -158,7 +162,11 @@ Edit Mode) hides the bar.
 
 `side == "above"` anchors `BOTTOM` of the bar to `TOP` of the target;
 `"below"` anchors `TOP` to `BOTTOM`. Horizontal alignment is `LEFT` to `LEFT`
-so the bar starts where the frames start.
+so the bar starts where the frames start. In a raid the container's left edge
+is the main-tank and main-assist column when one is shown, so the bar sits
+over that column rather than over Group 1; verified in a 25-player raid on
+2026-09-10 and kept, since it is still the container's edge and follows it in
+Edit Mode.
 
 Re-anchor triggers: `GROUP_ROSTER_UPDATE`, `PLAYER_ENTERING_WORLD`, the
 `EditMode.Exit` callback from `EventRegistry`, and any settings change. The
@@ -244,6 +252,10 @@ matches the profile.
   gain `unit`; nothing else moves.
 - Keybinds on bar slots. Blizzard's keybind UI owns that.
 - Loss-of-control cooldown overlay and the proc glow. Display sugar.
+- Hiding the global-cooldown swipe. `C_Spell.GetSpellCooldownDuration` takes
+  an `ignoreGCD` second argument; one boolean and a Settings checkbox.
+- A `/healme bar` command. `/healme status` prints the slot count and the
+  tab covers everything else.
 
 ## 11. Sources
 
