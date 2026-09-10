@@ -13,6 +13,7 @@ Compiler.lua
 Bindings.lua
 Registry.lua
 Secure.lua
+Bar.lua
 Serialize.lua
 Native.lua
 SelfTest.lua
