@@ -56,6 +56,8 @@ raid container, which is the main-tank column when you show one.
 Like Blizzard's action bars, every button briefly swipes on the global
 cooldown after any cast.
 
+![The Bar tab: the spell list, Move up, Move down and Remove, and the Side and Size placement dropdowns](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/bar-tab.png)
+
 HealMe will not run alongside Clique or Clicked; all three claim the same
 click-casting frames. Disable the others first.
 
@@ -66,6 +68,8 @@ feature in-game.
 ![The Profiles tab: profile list, actions, and automatic switching rules](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/profiles-tab.png)
 
 ![The Help tab: one collapsible topic per feature](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/help-tab.png)
+
+![The Settings tab: also-target, the minimap button, Blizzard click-casting, the self-test, and export and import](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/settings-tab.png)
 
 ## What it will never do
 
