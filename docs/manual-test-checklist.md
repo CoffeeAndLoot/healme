@@ -409,6 +409,36 @@ it.
       plate at your UI scale
 - [ ] Help tab, "Bugs, questions and updates" reads correctly
 
+## Cooldown bar
+
+What this section is watching for: attribute writes in combat, a bar that
+loses its raid frames, and a spell list that does not follow the profile.
+The bar hides on purpose while solo and when Blizzard's group frames are not
+on screen.
+
+- [ ] Bar tab: pick Tranquility (or any raid cooldown) from Spellbook; it
+      appears in the list with its icon. Add a second spell.
+- [ ] Adding the same spell again is refused with a message under the plate
+- [ ] Typing a made-up name and pressing Add is refused
+- [ ] Join a party or raid: the bar appears above the group frames, left
+      edges aligned, one button per spell
+- [ ] *(self-test)* "cooldown bar shows N of N slots"
+- [ ] Side: Below moves it under the frames; Size changes the buttons
+- [ ] Open Edit Mode, drag the raid frames, exit: the bar follows
+- [ ] Hover a button: the spell tooltip shows
+- [ ] Click a button out of combat: the spell casts
+- [ ] Pull a mob, click a button: it casts, and the swipe and countdown run
+- [ ] While in combat, open the Bar tab and add a spell: the new button
+      appears only after combat ends, with no Lua error
+- [ ] Select a spell, Move up / Move down: the bar reorders
+- [ ] Remove: the popup asks first; the bar shrinks
+- [ ] Switch specialisation: the bar changes with the profile; a spell the
+      new spec lacks shows greyed with a question mark and a red row
+- [ ] Leave the group: the bar hides. Rejoin: it returns
+- [ ] Export, then import into another profile: the bar comes along and the
+      confirm text says so
+- [ ] `/reload` in a raid: no Lua errors, bar in place
+
 ## Diagnostics
 
 These exist because `WrapScript` leaves no readable mark on a frame, so whether

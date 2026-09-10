@@ -17,6 +17,7 @@ cannot do:
   combat
 - Third-party unit frames, through the community `ClickCastFrames` protocol
 - Export and import, so you can share or version-control your bindings
+- A cooldown bar for raid-wide spells, glued above or below your raid frames
 
 HealMe replaces native click-casting rather than supplementing it. Native
 bindings keep firing beside HealMe's, so clear the spells from Blizzard's

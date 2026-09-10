@@ -101,13 +101,14 @@ Consequences for HealMe:
   registers through the community `ClickCastFrames` protocol.
 - An in-game options panel to create, edit, and delete bindings.
 - Export and import of a binding set as a shareable string.
+- A cooldown bar: a row of unit-less spell buttons anchored to Blizzard's raid or party frames, with cooldown swipes. See `2026-09-09-cooldown-bar-design.md`.
 
 **Out of scope**
 
 - Drawing any unit frames. HealMe rides frames that already exist.
 - Health-, aura-, or combat-log-driven conditions (§3.3 — impossible).
 - Hover-plus-keyboard bindings. Those belong in Blizzard's keybind UI.
-- Bindings that fire without a frame under the cursor.
+- Bindings that fire without a frame under the cursor, except the cooldown bar's own buttons.
 - Healing decisions of any kind. HealMe wires buttons; the player aims them.
 - Classic / Cataclysm / MoP flavors.
 
@@ -233,6 +234,7 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 | `Minimap.lua` | The minimap button and its account-wide position. | Options |
 | `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
+| `Bar.lua` | The cooldown bar: secure spell slots, cooldown display, anchoring to the group frames. | Secure, Registry |
 | `Widgets.lua` | Constructors for the panel's controls and art, on Blizzard's own templates and atlases with plain fallbacks. | none |
 | `Options.lua` | A standalone portrait window: tabs, a grouped binding list, the editor, the settings page and the share window. | Bindings, Widgets |
 | `Serialize.lua` | Export/import strings, and the field-based codec that produces them. | none |
@@ -660,6 +662,7 @@ Not built now, with a clear seam if ever wanted:
   `alsoTarget` tri-state — inherit / on / off — and the compiler would read the
   effective value instead of the profile setting. One field and one line;
   nothing else moves.
+- Free-floating placement of the cooldown bar for third-party raid frames.
 
 Not built, ever, unless Blizzard reverses course: any condition requiring health
 values, aura state, or combat log data (§3.3).

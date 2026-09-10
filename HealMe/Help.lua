@@ -43,6 +43,21 @@ ns.Help = {
         },
     },
     {
+        title = "The cooldown bar",
+        body = {
+            "The " .. gold("Bar") .. " tab puts a row of spell buttons on top of, or under, "
+                .. "Blizzard's raid or party frames, so long cooldowns such as Tranquility or "
+                .. "Halo sit where you are already looking. Each button shows the cooldown and "
+                .. "casts when clicked.",
+            "Buttons cast with no target, so they suit raid-wide cooldowns. A spell that "
+                .. "needs a target still goes to your current target, the same as pressing it "
+                .. "on an action bar.",
+            "The bar is part of the profile, so it swaps with your specialisation. "
+                .. gold("Side") .. " and " .. gold("Size") .. " are shared by every profile. "
+                .. "The bar hides while solo and with raid frames from another addon.",
+        },
+    },
+    {
         title = "Conditions",
         body = {
             "Each binding can be limited to " .. gold("Friendly only") .. " or "

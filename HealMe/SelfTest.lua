@@ -258,6 +258,25 @@ local function checkNative(r)
     end
 end
 
+local function checkBar(r)
+    local Bar, Core = ns.Bar, ns.Core
+    if not Bar or not Bar.SlotCount then
+        r("warn", "cooldown bar module missing")
+        return
+    end
+    local want = #Core:Bar()
+    local have = Bar:SlotCount()
+    local container = _G["HealMeBar"]
+    if not container then
+        r("fail", "cooldown bar container missing")
+        return
+    end
+    r(have == want and "pass" or "fail", "cooldown bar shows " .. have .. " of " .. want .. " slots")
+    if want > 0 and not container:IsShown() then
+        r("warn", "cooldown bar is hidden: no Blizzard raid or party frames on screen")
+    end
+end
+
 local function checkRoundTrip(r)
     local Serialize, Core = ns.Serialize, ns.Core
     local profile = { bindings = Core:Bindings(), settings = Core:Settings(), bar = Core:Bar() }
@@ -306,6 +325,7 @@ function SelfTest.Run()
         checkBindings(r)
     end
     checkNative(r)
+    checkBar(r)
     checkRoundTrip(r)
 
     Core:Print(string.format("self-test done: %d passed, %d failed, %d warnings",
