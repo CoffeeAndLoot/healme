@@ -6,6 +6,8 @@ pressing a key.
 
 Retail only, Midnight 12.1 or later.
 
+![The Bindings tab: a grouped list of bindings and the editor for one](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/bindings-tab.png)
+
 ## Why not the built-in click-casting?
 
 Retail has shipped native click-casting since 10.1.5. HealMe exists for what it
@@ -34,6 +36,8 @@ follows your mouse.
 
 ## The cooldown bar
 
+![Two cooldown buttons with countdowns sitting above the raid frames](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/cooldown-bar-raid.png)
+
 The **Bar** tab puts a row of spell buttons directly above or below Blizzard's
 raid or party frames, so raid-wide cooldowns such as Tranquility, Halo or
 Divine Hymn sit where a healer is already looking. Each button shows the
@@ -54,6 +58,14 @@ cooldown after any cast.
 
 HealMe will not run alongside Clique or Clicked; all three claim the same
 click-casting frames. Disable the others first.
+
+Profiles are per character and specialisation, with rules that switch them
+when you go solo, into a party or into a raid. The Help tab covers every
+feature in-game.
+
+![The Profiles tab: profile list, actions, and automatic switching rules](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/profiles-tab.png)
+
+![The Help tab: one collapsible topic per feature](https://raw.githubusercontent.com/CoffeeAndLoot/healme/main/images/help-tab.png)
 
 ## What it will never do
 
