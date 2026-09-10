@@ -487,6 +487,9 @@ function Core:ApplyAll()
     if ns.Secure and ns.Secure.ApplyAll then
         ns.Secure:ApplyAll()
     end
+    if ns.Bar and ns.Bar.Apply then
+        ns.Bar:Apply()
+    end
 end
 
 function Core:NotifyChanged()
@@ -555,6 +558,10 @@ function Core:OnLogin()
     if self.registryActive then
         ns.Secure:Initialize()
         ns.Secure:ApplyAll()
+    end
+
+    if ns.Bar and ns.Bar.Initialize then
+        ns.Bar:Initialize()
     end
 
     if ns.Options and ns.Options.Initialize then

@@ -54,8 +54,8 @@ profile.bar = { "Tranquility", "Nature's Swiftness" }   -- ordered spell names
 Spell names are validated exactly like a binding's spell: `C_Spell.GetSpellInfo`
 must return a result, and case is preserved. An unknown name is refused by the
 editor, not silently dropped. A name that later stops resolving (talent swap,
-spec change) leaves its slot empty with no icon; the button carries no
-attribute and clicking it does nothing.
+spec change) keeps its slot, greyed with a question-mark icon; the button
+carries no attribute and clicking it does nothing.
 
 Layout is a habit, not a spec thing, so it lives in the shared UI table:
 
@@ -107,8 +107,8 @@ and textures each slot carries.
 
 `Bar:Apply()` is the one entry point and is called from `Core:NotifyChanged`
 alongside `Secure:ApplyAll`. Under `InCombatLockdown()` it sets a flag and
-returns; `Secure:FlushQueues` calls it on `PLAYER_REGEN_ENABLED`. Out of
-combat it:
+returns; the bar's own event frame calls it on `PLAYER_REGEN_ENABLED`, keeping
+the module self-contained. Out of combat it:
 
 1. Reads the active profile's `bar` list and `HealMeDB.ui.bar`.
 2. For each slot `i`: if `bar[i]` resolves, writes `type=spell`,
