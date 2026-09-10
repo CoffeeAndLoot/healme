@@ -101,14 +101,16 @@ Consequences for HealMe:
   registers through the community `ClickCastFrames` protocol.
 - An in-game options panel to create, edit, and delete bindings.
 - Export and import of a binding set as a shareable string.
-- A cooldown bar: a row of unit-less spell buttons anchored to Blizzard's raid or party frames, with cooldown swipes. See `2026-09-09-cooldown-bar-design.md`.
+- A cooldown bar: a row of unit-less spell buttons anchored to Blizzard's raid or
+  party frames, with cooldown swipes. See `2026-09-09-cooldown-bar-design.md`.
 
 **Out of scope**
 
 - Drawing any unit frames. HealMe rides frames that already exist.
 - Health-, aura-, or combat-log-driven conditions (§3.3 — impossible).
 - Hover-plus-keyboard bindings. Those belong in Blizzard's keybind UI.
-- Bindings that fire without a frame under the cursor, except the cooldown bar's own buttons.
+- Bindings that fire without a frame under the cursor, except the cooldown bar's
+  own buttons.
 - Healing decisions of any kind. HealMe wires buttons; the player aims them.
 - Classic / Cataclysm / MoP flavors.
 
