@@ -6,7 +6,7 @@
 ## X-Issues: https://github.com/CoffeeAndLoot/healme/issues
 ## X-Wago-ID: vNAgVBKo
 ## IconTexture: Interface\AddOns\HealMe\Media\icon
-## Version: 2026.09.10
+## Version: 2026.09.10.2
 ## SavedVariables: HealMeDB
 ## AddonCompartmentFunc: HealMe_OnAddonCompartmentClick
 
