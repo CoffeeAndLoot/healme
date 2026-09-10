@@ -1,6 +1,6 @@
 ## Interface: 120007, 120100
 ## Title: HealMe
-## Notes: Mouse click-casting for healers.
+## Notes: Mouse click-casting and a raid-frame cooldown bar for healers.
 ## Author: CoffeeAndLoot
 ## X-Website: https://github.com/CoffeeAndLoot/healme
 ## X-Issues: https://github.com/CoffeeAndLoot/healme/issues
@@ -13,6 +13,7 @@ Compiler.lua
 Bindings.lua
 Registry.lua
 Secure.lua
+Bar.lua
 Serialize.lua
 Native.lua
 SelfTest.lua

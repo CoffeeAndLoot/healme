@@ -14,6 +14,15 @@ return function(h)
     env.geterrorhandler = function() return function(e) error(e) end end
 
     local ns = {}
+    ns.Bar = assert(loadfile("HealMe/Bar.lua"))("HealMe", ns)
+
+    env.C_Spell = {
+        GetSpellInfo = function(name)
+            local known = { Tranquility = true, Halo = true, ["Nature's Swiftness"] = true }
+            return known[name] and { spellID = 1 } or nil
+        end,
+    }
+
     local chunk
     if setfenv then
         chunk = assert(loadfile("HealMe/Core.lua"))
@@ -170,6 +179,65 @@ return function(h)
             h.eq(list[2].name, "Raid healing")
             h.eq(list[2].active, true)
             h.eq(list[2].spec, false)
+        end)
+    end)
+
+    h.describe("Core cooldown bar", function()
+        h.it("seeds an empty bar on a profile and placement in ui", function()
+            local c = fresh()
+            h.eq(#c:Bar(), 0)
+            h.eq(env.HealMeDB.ui.bar.side, "above")
+            h.eq(env.HealMeDB.ui.bar.size, 36)
+        end)
+
+        h.it("fills a missing bar on an old profile", function()
+            local c = fresh()
+            env.HealMeDB.profiles["Old"] = { bindings = {}, settings = {} }
+            c:SetProfile("Old")
+            h.eq(#c:Bar(), 0)
+        end)
+
+        h.it("adds known spells in order and refuses unknown or duplicate ones", function()
+            local c = fresh()
+            h.truthy(c:AddBarSpell("Tranquility"))
+            h.truthy(c:AddBarSpell("Halo"))
+            h.eq(c:Bar()[1], "Tranquility")
+            h.eq(c:Bar()[2], "Halo")
+            local ok, err = c:AddBarSpell("Halo")
+            h.falsy(ok)
+            h.truthy(err:find("already"), err)
+            ok, err = c:AddBarSpell("Made Up")
+            h.falsy(ok)
+            h.truthy(err:find("unknown"), err)
+            ok = c:AddBarSpell("")
+            h.falsy(ok)
+        end)
+
+        h.it("removes and reorders", function()
+            local c = fresh()
+            c:AddBarSpell("Tranquility")
+            c:AddBarSpell("Halo")
+            c:AddBarSpell("Nature's Swiftness")
+            h.truthy(c:MoveBarSpell(3, -1))
+            h.eq(c:Bar()[2], "Nature's Swiftness")
+            h.eq(c:Bar()[3], "Halo")
+            h.falsy(c:MoveBarSpell(1, -1))
+            h.falsy(c:MoveBarSpell(3, 1))
+            h.truthy(c:RemoveBarSpell(1))
+            h.eq(#c:Bar(), 2)
+            h.eq(c:Bar()[1], "Nature's Swiftness")
+            h.falsy(c:RemoveBarSpell(9))
+        end)
+
+        h.it("copies the bar with the profile", function()
+            local c = fresh()
+            c:CreateProfile("Source")
+            c:AddBarSpell("Halo")
+            c:SwitchProfile("Coffee - Suramar")
+            c:CopyProfileFrom("Source")
+            h.eq(c:Bar()[1], "Halo")
+            c:Bar()[1] = "Changed"
+            h.eq(env.HealMeDB.profiles["Source"].bar[1], "Halo")
         end)
     end)
 end

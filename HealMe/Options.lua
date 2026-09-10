@@ -51,6 +51,8 @@ local W -- ns.Widgets, bound in Initialize
 local selectedId = nil
 local selectedProfile = nil
 local profileError = nil
+local selectedBar = nil
+local barError = nil
 local collapsed = {}
 local ui = {}
 local editError, errorBindingId
@@ -851,6 +853,250 @@ local function refreshProfiles()
 end
 
 ---------------------------------------------------------------------------
+-- Bar page
+---------------------------------------------------------------------------
+
+local SIDE_LABEL = { above = "Above the frames", below = "Below the frames" }
+local SIDE_ORDER = { "above", "below" }
+
+local function barAction(ok, err)
+    barError = (not ok and err) or nil
+    Options:Refresh()
+end
+
+local function newBarRow(index)
+    local content = ui.barContent
+    local row = W.ListRow(content, content:GetWidth(), ROW_HEIGHT, 32)
+    row:SetScript("OnClick", function(self)
+        selectedBar = self.index
+        barError = nil
+        Options:Refresh()
+    end)
+    ui.barRows[index] = row
+    return row
+end
+
+local function buildBarPage(f)
+    local page = CreateFrame("Frame", nil, f.content)
+    page:SetAllPoints()
+    page:Hide()
+    ui.barPage = page
+
+    ------------------------------------------------------------ list
+    local list = W.Panel(page)
+    list:SetPoint("TOPLEFT", MARGIN, -MARGIN)
+    list:SetPoint("BOTTOMLEFT", MARGIN, MARGIN + 34)
+    list:SetWidth(LIST_WIDTH)
+
+    local scroll = W.ScrollFrame(list, LIST_WIDTH - 22)
+    ui.barContent = scroll.content
+    ui.barRows = {}
+
+    ui.barEmpty = list:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+    ui.barEmpty:SetPoint("CENTER")
+    ui.barEmpty:SetWidth(220)
+    ui.barEmpty:SetText("Nothing on the bar yet.\nPick a spell below to add one.")
+
+    -- Adding: the spellbook picker or a typed name, then Add. Under the
+    -- list, where New profile sits on the other tab.
+    local function add(name)
+        local ok, err = ns.Core:AddBarSpell(name)
+        if ok then
+            ui.barName:SetText("")
+            selectedBar = #ns.Core:Bar()
+        end
+        barAction(ok, err)
+    end
+
+    ui.barName = W.EditBox(page, 118, function() end)
+    ui.barName:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 6, -8)
+    ui.barAdd = W.Button(page, "Add", 54, function() add(ui.barName:GetText()) end)
+    ui.barAdd:SetPoint("TOPRIGHT", list, "BOTTOMRIGHT", 0, -8)
+    ui.barPick = W.SpellbookPicker(page, 86, add)
+    if ui.barPick then
+        ui.barPick:SetPoint("LEFT", ui.barName, "RIGHT", 6, 0)
+    end
+
+    ------------------------------------------------------------ selection
+    local header = CreateFrame("Frame", nil, page)
+    header:SetPoint("TOPLEFT", list, "TOPRIGHT", 24, 0)
+    header:SetPoint("RIGHT", -MARGIN, 0)
+    header:SetHeight(62)
+
+    ui.barIcon = W.Icon(header, 58)
+    ui.barIcon:SetPoint("TOPLEFT", 0, -4)
+
+    ui.barTitle = header:CreateFontString(nil, "ARTWORK", "GameFontHighlightHuge")
+    ui.barTitle:SetPoint("TOPLEFT", ui.barIcon, "TOPRIGHT", 14, -4)
+    ui.barTitle:SetPoint("RIGHT", 0, 0)
+    ui.barTitle:SetJustifyH("LEFT")
+    ui.barTitle:SetWordWrap(false)
+
+    ui.barState = header:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    ui.barState:SetPoint("TOPLEFT", ui.barTitle, "BOTTOMLEFT", 0, -10)
+    ui.barState:SetJustifyH("LEFT")
+
+    local plate = W.Panel(page)
+    plate:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -8)
+    plate:SetPoint("BOTTOMRIGHT", -MARGIN, MARGIN)
+
+    ui.barPlateEmpty = plate:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+    ui.barPlateEmpty:SetPoint("TOP", 0, -40)
+    ui.barPlateEmpty:SetWidth(280)
+    ui.barPlateEmpty:SetText("Pick a spell on the left to move or remove it.")
+
+    ui.barError = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    ui.barError:SetPoint("BOTTOMLEFT", 20, 4)
+    ui.barError:SetPoint("RIGHT", -20, 0)
+    ui.barError:SetHeight(24)
+    ui.barError:SetJustifyH("LEFT")
+    ui.barError:SetTextColor(1, 0.45, 0.35)
+
+    local X = 30
+    local y = -24
+
+    ui.barUp = W.Button(plate, "Move up", 100, function()
+        if selectedBar and ns.Core:MoveBarSpell(selectedBar, -1) then
+            selectedBar = selectedBar - 1
+        end
+        barAction(true)
+    end)
+    ui.barUp:SetPoint("TOPLEFT", X, y)
+    ui.barDown = W.Button(plate, "Move down", 100, function()
+        if selectedBar and ns.Core:MoveBarSpell(selectedBar, 1) then
+            selectedBar = selectedBar + 1
+        end
+        barAction(true)
+    end)
+    ui.barDown:SetPoint("LEFT", ui.barUp, "RIGHT", 8, 0)
+    ui.barRemove = W.Button(plate, "Remove", 100, function()
+        local name = ns.Core:Bar()[selectedBar or 0]
+        if not name then
+            return
+        end
+        W.Confirm("Remove " .. name .. " from the bar?", function()
+            ns.Core:RemoveBarSpell(selectedBar)
+            selectedBar = nil
+            barAction(true)
+        end)
+    end)
+    ui.barRemove:SetPoint("LEFT", ui.barDown, "RIGHT", 8, 0)
+    y = y - 40
+    ui.barWidgets = { ui.barUp, ui.barDown, ui.barRemove }
+
+    ------------------------------------------------------------ placement
+    -- Placement belongs to the interface, not the selection, so it shows
+    -- whenever the tab does, like the rules section on Profiles.
+    ui.barPlacement = W.Heading(plate, "Placement", 260)
+    ui.barPlacement:SetPoint("TOPLEFT", X, y - 30)
+    y = y - 66
+
+    local function setSide(value)
+        local bar = ns.Core:UISettings().bar
+        local previous = bar.side
+        bar.side = value
+        if value ~= "above" and value ~= "below" then
+            bar.side = previous
+            return
+        end
+        if ns.Bar and ns.Bar.Apply then ns.Bar:Apply() end
+        Options:Refresh()
+    end
+    local function setSize(value)
+        local bar = ns.Core:UISettings().bar
+        local previous = bar.size
+        bar.size = tonumber(value)
+        if not bar.size then
+            bar.size = previous
+            return
+        end
+        if ns.Bar and ns.Bar.Apply then ns.Bar:Apply() end
+        Options:Refresh()
+    end
+
+    local sizes = ns.Bar and ns.Bar.SIZES or { 24, 32, 36, 40, 48, 64 }
+    local sizeLabels = {}
+    for i = 1, #sizes do
+        sizeLabels[sizes[i]] = sizes[i] .. " px"
+    end
+
+    local sideLabel = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    sideLabel:SetPoint("TOPLEFT", X + 4, y)
+    sideLabel:SetText("Side")
+    ui.barSide = W.Dropdown(plate, 180, SIDE_ORDER, SIDE_LABEL,
+        function() return ns.Core:UISettings().bar.side end, setSide)
+    ui.barSide:SetPoint("LEFT", sideLabel, "LEFT", 60, 0)
+    y = y - 34
+
+    local sizeLabel = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    sizeLabel:SetPoint("TOPLEFT", X + 4, y)
+    sizeLabel:SetText("Size")
+    ui.barSize = W.Dropdown(plate, 180, sizes, sizeLabels,
+        function() return ns.Core:UISettings().bar.size end, setSize)
+    ui.barSize:SetPoint("LEFT", sizeLabel, "LEFT", 60, 0)
+    y = y - 40
+
+    W.Note(plate, "The bar sits on Blizzard's raid or party frames and hides when they are "
+        .. "not on screen, including while solo. Buttons cast with no target: use it for "
+        .. "raid cooldowns such as Tranquility or Halo. Spells this spec does not know stay "
+        .. "greyed until you switch back.", 460):SetPoint("TOPLEFT", X + 4, y)
+end
+
+local function refreshBar()
+    local list = ns.Core:Bar()
+    local y = 0
+    for i = 1, #list do
+        local row = ui.barRows[i] or newBarRow(i)
+        local known = ns.Core:SpellExists(list[i])
+        row.index = i
+        row.name:SetText(list[i])
+        if known then
+            row.name:SetTextColor(1, 1, 1)
+            row.detail:SetText("Slot " .. i)
+            row.detail:SetTextColor(1, 0.82, 0)
+        else
+            row.name:SetTextColor(1, 0.45, 0.35)
+            row.detail:SetText("Not known by this spec")
+            row.detail:SetTextColor(1, 0.45, 0.35)
+        end
+        row.icon:SetIcon(W.ActionIcon({ kind = "spell", spell = list[i] }))
+        row.icon:SetDimmed(not known)
+        row:SetSelected(i == selectedBar)
+        row:ClearAllPoints()
+        row:SetPoint("TOPLEFT", 0, -y)
+        row:Show()
+        y = y + ROW_HEIGHT
+    end
+    for i = #list + 1, #ui.barRows do ui.barRows[i]:Hide() end
+    ui.barContent:SetHeight(math.max(1, y))
+    ui.barEmpty:SetShown(#list == 0)
+
+    if selectedBar and not list[selectedBar] then
+        selectedBar = nil
+    end
+    local name = selectedBar and list[selectedBar]
+
+    for i = 1, #ui.barWidgets do ui.barWidgets[i]:SetShown(name ~= nil) end
+    ui.barPlateEmpty:SetShown(name == nil)
+    ui.barIcon:SetShown(name ~= nil)
+    ui.barTitle:SetShown(name ~= nil)
+    ui.barState:SetShown(name ~= nil)
+    ui.barError:SetText(barError or "")
+    ui.barError:SetShown(barError ~= nil)
+    ui.barSide:Refresh()
+    ui.barSize:Refresh()
+
+    if not name then
+        return
+    end
+    ui.barTitle:SetText(name)
+    ui.barIcon:SetIcon(W.ActionIcon({ kind = "spell", spell = name }))
+    ui.barState:SetText("Slot " .. selectedBar .. " of " .. #list)
+    ui.barUp:SetEnabled(selectedBar > 1)
+    ui.barDown:SetEnabled(selectedBar < #list)
+end
+
+---------------------------------------------------------------------------
 -- Settings page
 ---------------------------------------------------------------------------
 
@@ -1044,7 +1290,7 @@ local function buildWindow()
     local f = W.Window("HealMeOptionsFrame", "HealMe", 814, 640)
 
     -- Tabs and picker sit where the dashboard puts its own.
-    ui.tabs = W.Tabs(f, { "Bindings", "Settings", "Profiles", "Help" }, function(index)
+    ui.tabs = W.Tabs(f, { "Bindings", "Bar", "Settings", "Profiles", "Help" }, function(index)
         Options:SelectTab(index)
     end)
     ui.tabs:SetPoint("BOTTOMLEFT", f.content, "TOPLEFT", 60, -1)
@@ -1059,6 +1305,7 @@ local function buildWindow()
     ui.profile:SetPoint("TOPRIGHT", -10, -28)
 
     buildBindingsPage(f)
+    buildBarPage(f)
     buildProfilesPage(f)
     buildSettingsPage(f)
     buildHelpPage(f)
@@ -1113,12 +1360,14 @@ function Options:ShowShare(mode)
                 local current = #ns.Core:Bindings()
                 W.Confirm("Replace the " .. current .. " binding"
                     .. (current == 1 and "" or "s") .. " in " .. tostring(ns.Core.profileName)
-                    .. " with the " .. #profile.bindings .. " from this string?", function()
+                    .. " with the " .. #profile.bindings .. " from this string?"
+                    .. " The cooldown bar is replaced too.", function()
                     local accepted, skipped = ns.Bindings.Sanitize(profile.bindings,
                         ns.Core:ValidationDeps())
                     ns.Core.db.profile.bindings = accepted
                     ns.Core.db.profile.settings.alsoTarget =
                         profile.settings.alsoTarget and true or false
+                    ns.Core.db.profile.bar = ns.Bar.Sanitize(profile.bar)
                     selectedId = nil
                     ns.Core:NotifyChanged()
                     local message = "imported " .. #accepted .. " bindings"
@@ -1151,10 +1400,11 @@ function Options:ShowShare(mode)
         s.box:SetText(ns.Serialize.Export({
             bindings = ns.Core:Bindings(),
             settings = ns.Core:Settings(),
+            bar = ns.Core:Bar(),
         }, ns.Serialize.codec))
     else
         title = "Import bindings"
-        s.hint:SetText("Paste a string here. It replaces every binding in this profile.")
+        s.hint:SetText("Paste a string here. It replaces every binding and the cooldown bar in this profile.")
         s.action:SetText("Import")
         s.box:SetText("")
     end
@@ -1347,6 +1597,7 @@ function Options:Initialize()
     -- Wired here, after every page's refresh function is in scope.
     ui.pages = {
         { frame = ui.bindingsPage, refresh = function() refreshList() refreshEditor() end },
+        { frame = ui.barPage, refresh = refreshBar },
         { frame = ui.settingsPage, refresh = refreshSettings },
         { frame = ui.profilesPage, refresh = refreshProfiles },
         { frame = ui.helpPage, refresh = refreshHelp },

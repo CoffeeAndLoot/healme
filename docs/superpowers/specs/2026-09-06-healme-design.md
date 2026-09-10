@@ -101,13 +101,16 @@ Consequences for HealMe:
   registers through the community `ClickCastFrames` protocol.
 - An in-game options panel to create, edit, and delete bindings.
 - Export and import of a binding set as a shareable string.
+- A cooldown bar: a row of unit-less spell buttons anchored to Blizzard's raid or
+  party frames, with cooldown swipes. See `2026-09-09-cooldown-bar-design.md`.
 
 **Out of scope**
 
 - Drawing any unit frames. HealMe rides frames that already exist.
 - Health-, aura-, or combat-log-driven conditions (§3.3 — impossible).
 - Hover-plus-keyboard bindings. Those belong in Blizzard's keybind UI.
-- Bindings that fire without a frame under the cursor.
+- Bindings that fire without a frame under the cursor, except the cooldown bar's
+  own buttons.
 - Healing decisions of any kind. HealMe wires buttons; the player aims them.
 - Classic / Cataclysm / MoP flavors.
 
@@ -125,9 +128,14 @@ D:\healme\
     Compiler.lua
     Secure.lua
     Bindings.lua
+    Bar.lua
+    Serialize.lua
+    Native.lua
+    SelfTest.lua
+    Help.lua
     Widgets.lua
     Options.lua
-    Serialize.lua
+    Minimap.lua
     Media\icon.tga
   .github\workflows\release-addon.yml
   test\                         <- desktop Lua tests
@@ -143,7 +151,7 @@ TOC header:
 ```
 ## Interface: 120007, 120100
 ## Title: HealMe
-## Notes: Mouse click-casting for healers.
+## Notes: Mouse click-casting and a raid-frame cooldown bar for healers.
 ## Author: <handle>
 ## Version: 0.1.0
 ## SavedVariables: HealMeDB
@@ -233,6 +241,7 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 | `Minimap.lua` | The minimap button and its account-wide position. | Options |
 | `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
+| `Bar.lua` | The cooldown bar: secure spell slots, cooldown display, anchoring to the group frames. | Core |
 | `Widgets.lua` | Constructors for the panel's controls and art, on Blizzard's own templates and atlases with plain fallbacks. | none |
 | `Options.lua` | A standalone portrait window: tabs, a grouped binding list, the editor, the settings page and the share window. | Bindings, Widgets |
 | `Serialize.lua` | Export/import strings, and the field-based codec that produces them. | none |
@@ -277,6 +286,20 @@ settings = {
 kind of thing a player wants on or off as a habit, not per bind, and keeping it
 out of the record means the binding list stays readable. §19 records the seam if
 per-binding control is ever wanted.
+
+The cooldown bar's spell list sits beside the bindings, so it swaps with the
+profile:
+
+```lua
+bar = { "Tranquility", "Nature's Swiftness" }   -- ordered spell names, at most 12
+```
+
+Account-wide interface state lives outside the profiles in `HealMeDB.ui`:
+the minimap button's angle and hidden flag, and the bar's placement,
+`ui.bar = { side = "above" | "below", size = 36 }`. Where a control sits is a
+habit of the interface, not of a binding set, and must not move on a spec
+change. The companion spec `2026-09-09-cooldown-bar-design.md` §4 has the
+bar's validation rules.
 
 Validation rules enforced by `Bindings.lua` before a record is accepted:
 
@@ -467,9 +490,9 @@ the addon.
 
 Layout:
 
-- The tab strip holds **Bindings** and **Settings** on the left and the
-  **profile picker** on the right, which switches profiles the same way
-  `/healme profile <name>` does.
+- The tab strip holds **Bindings**, **Bar**, **Settings**, **Profiles** and
+  **Help** on the left and the **profile picker** on the right, which
+  switches profiles the same way `/healme profile <name>` does.
 - **Bindings** is two columns over the scene. The left is a translucent plate
   holding the binding list grouped by mouse button, quest-log style: a
   collapsible header per button with a count, and spellbook-style rows
@@ -489,6 +512,12 @@ Layout:
   Below it, **On frames** is a checkbox menu of frame kinds; the button reads
   "All frames" or the ticked kinds. Every kind ticked is stored as no limit,
   and Validate refuses an empty set, so the last box cannot be unticked.
+- **Bar** mirrors Profiles: a list of the cooldown bar's spells with icons,
+  a spellbook picker and a name field with Add under it, and a plate for the
+  selected spell with Move up, Move down and Remove (through the confirm
+  popup). Under that, **Placement**: Side and Size dropdowns, stored
+  account-wide. A spell the current spec does not know shows red with a
+  dimmed icon and keeps its slot. See `2026-09-09-cooldown-bar-design.md` §7.
 - **Help** is one plate of quest-log style headers, one per topic from
   `Help.lua`, a plain data file of titles and paragraphs. One topic is open
   at a time; the first opens by default.
@@ -596,7 +625,14 @@ framework dependency):
   and that `macro`, `target`, `focus`, and `menu` are left untouched.
 - `Bindings` validation rules: mutual exclusion, duplicate key detection, macro
   length, spell validation via an injected stub.
-- Round-trip: `Serialize.Export(profile)` → `Import` → identical table.
+- Round-trip: `Serialize.Export(profile)` → `Import` → identical table,
+  including the bar's `c^` records and a pre-bar string decoding to an empty
+  bar.
+- `Bar` pure helpers: anchor target for every group state, slot layout,
+  add-validation (blank, unknown, duplicate, full), import sanitising, size
+  clamping.
+- `Core` bar accessors: seeding on old profiles and old `ui`, add, remove,
+  move, copy with the profile.
 
 **Manual checklist** (`docs/manual-test-checklist.md`), run in-game:
 
@@ -660,6 +696,7 @@ Not built now, with a clear seam if ever wanted:
   `alsoTarget` tri-state — inherit / on / off — and the compiler would read the
   effective value instead of the profile setting. One field and one line;
   nothing else moves.
+- Free-floating placement of the cooldown bar for third-party raid frames.
 
 Not built, ever, unless Blizzard reverses course: any condition requiring health
 values, aura state, or combat log data (§3.3).

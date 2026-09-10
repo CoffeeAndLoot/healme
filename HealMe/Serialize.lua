@@ -36,6 +36,7 @@ function Serialize.Import(text, codec)
     end
 
     decoded.settings = type(decoded.settings) == "table" and decoded.settings or {}
+    decoded.bar = type(decoded.bar) == "table" and decoded.bar or {}
 
     return decoded, nil
 end
@@ -53,6 +54,7 @@ end
 -- `frames` is a comma list of frame kinds, empty for every frame. Strings
 -- from before the field was added decode without it, meaning every frame.
 --   settings: s^alsoTarget
+--   bar spell: c^spell            one per cooldown-bar slot, in order
 --
 -- Any character that would confuse the parse is percent-escaped, so macro text
 -- containing separators or newlines survives the round trip.
@@ -206,6 +208,10 @@ Serialize.codec = {
         for i = 1, #bindings do
             records[#records + 1] = encodeBinding(bindings[i])
         end
+        local bar = profile.bar or {}
+        for i = 1, #bar do
+            records[#records + 1] = "c" .. FIELD_SEP .. escape(bar[i])
+        end
         return table.concat(records, RECORD_SEP)
     end,
 
@@ -214,7 +220,7 @@ Serialize.codec = {
             return nil
         end
 
-        local profile = { bindings = {}, settings = { alsoTarget = false } }
+        local profile = { bindings = {}, settings = { alsoTarget = false }, bar = {} }
 
         local records = splitEscaped(text, RECORD_SEP)
         for i = 1, #records do
@@ -225,6 +231,11 @@ Serialize.codec = {
                 local binding = decodeBinding(fields)
                 binding.id = "b" .. (#profile.bindings + 1)
                 profile.bindings[#profile.bindings + 1] = binding
+            elseif fields[1] == "c" then
+                local name = unescape(fields[2] or "")
+                if name ~= "" then
+                    profile.bar[#profile.bar + 1] = name
+                end
             end
         end
 

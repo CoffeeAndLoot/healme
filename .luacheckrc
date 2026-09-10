@@ -23,5 +23,6 @@ read_globals = {
     "ScrollUtil", "C_Texture", "CreateFramePool", "C_SpellBook", "Enum",
     "C_ClickBindings", "GetMacroInfo", "GetStringFromModifiers", "ToggleClickBindingFrame",
     "IsInRaid", "IsInGroup", "GetRealmName",
+    "CompactRaidFrameContainer", "CompactPartyFrame", "PartyFrame", "EventRegistry",
     "StaticPopup_Show", "YES", "NO",
 }
