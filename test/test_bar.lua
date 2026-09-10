@@ -72,6 +72,18 @@ return function(h, m)
         end)
     end)
 
+    h.describe("Bar.ClampSize", function()
+        h.it("passes a listed size through", function()
+            h.eq(Bar.ClampSize(48), 48)
+        end)
+
+        h.it("falls back to the default for an unlisted or non-number size", function()
+            h.eq(Bar.ClampSize(99), Bar.DEFAULT_SIZE)
+            h.eq(Bar.ClampSize(nil), Bar.DEFAULT_SIZE)
+            h.eq(Bar.ClampSize("36"), Bar.DEFAULT_SIZE)
+        end)
+    end)
+
     h.describe("Bar.Sanitize", function()
         h.it("keeps strings in order, drops blanks, junk and duplicates", function()
             local out = Bar.Sanitize({ "Halo", "", 7, "Halo", "Tranquility", false })

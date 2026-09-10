@@ -999,7 +999,7 @@ local function buildBarPage(f)
             bar.side = previous
             return
         end
-        ns.Bar:Apply()
+        if ns.Bar and ns.Bar.Apply then ns.Bar:Apply() end
         Options:Refresh()
     end
     local function setSize(value)
@@ -1010,13 +1010,14 @@ local function buildBarPage(f)
             bar.size = previous
             return
         end
-        ns.Bar:Apply()
+        if ns.Bar and ns.Bar.Apply then ns.Bar:Apply() end
         Options:Refresh()
     end
 
+    local sizes = ns.Bar and ns.Bar.SIZES or { 24, 32, 36, 40, 48, 64 }
     local sizeLabels = {}
-    for i = 1, #ns.Bar.SIZES do
-        sizeLabels[ns.Bar.SIZES[i]] = ns.Bar.SIZES[i] .. " px"
+    for i = 1, #sizes do
+        sizeLabels[sizes[i]] = sizes[i] .. " px"
     end
 
     local sideLabel = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -1030,7 +1031,7 @@ local function buildBarPage(f)
     local sizeLabel = plate:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     sizeLabel:SetPoint("TOPLEFT", X + 4, y)
     sizeLabel:SetText("Size")
-    ui.barSize = W.Dropdown(plate, 180, ns.Bar.SIZES, sizeLabels,
+    ui.barSize = W.Dropdown(plate, 180, sizes, sizeLabels,
         function() return ns.Core:UISettings().bar.size end, setSize)
     ui.barSize:SetPoint("LEFT", sizeLabel, "LEFT", 60, 0)
     y = y - 40

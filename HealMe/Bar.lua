@@ -67,6 +67,16 @@ function Bar.Validate(list, name, spellExists)
     return true
 end
 
+-- A valid slot size, or the default if `size` is not one of Bar.SIZES.
+function Bar.ClampSize(size)
+    for i = 1, #Bar.SIZES do
+        if Bar.SIZES[i] == size then
+            return size
+        end
+    end
+    return Bar.DEFAULT_SIZE
+end
+
 -- An imported list, cleaned: strings only, no blanks, no duplicates, at
 -- most MAX_SLOTS. Unknown spells are kept on purpose: a string from another
 -- spec should keep its slots and simply show them empty here.
@@ -95,6 +105,11 @@ local FALLBACK_ICON = 134400 -- INV_Misc_QuestionMark
 local container
 local buttons = {}
 local applyQueued = false
+-- Slots actually in use, set by Apply. Buttons beyond this stay whatever
+-- they last were (usually hidden); RefreshCooldowns and SlotCount both
+-- trust this instead of IsShown, which lies for the first frame after
+-- Initialize (before the first Apply runs) or while Apply sits queued.
+local usedCount = 0
 
 local function errorhandler(err)
     return geterrorhandler()(err)
@@ -157,6 +172,47 @@ local function createButton(i)
     return b
 end
 
+-- Optional display features. Each runs in its own pcall and switches
+-- itself off after a first failure, so a value the client makes secret
+-- costs that feature, never the swipe and never an error per event.
+local features = { charges = true, usable = true }
+
+local function showCharges(b)
+    local charges = C_Spell.GetSpellCharges and C_Spell.GetSpellCharges(b.spellID)
+    if charges and charges.maxCharges and charges.maxCharges > 1 then
+        b.count:SetText(charges.currentCharges)
+        b.count:Show()
+    else
+        b.count:Hide()
+    end
+end
+
+local function tintUsable(b)
+    if not C_Spell.IsSpellUsable then
+        return
+    end
+    local usable, noMana = C_Spell.IsSpellUsable(b.spellID)
+    if usable then
+        b.icon:SetVertexColor(1, 1, 1)
+    elseif noMana then
+        b.icon:SetVertexColor(0.5, 0.5, 1)
+    else
+        b.icon:SetVertexColor(0.4, 0.4, 0.4)
+    end
+end
+
+local function optional(name, fn, b)
+    if not features[name] then
+        return
+    end
+    local ok = pcall(fn, b)
+    if not ok then
+        features[name] = false
+        if name == "charges" then b.count:Hide() end
+        if name == "usable" then b.icon:SetVertexColor(1, 1, 1) end
+    end
+end
+
 -- Display only. Start, duration and modRate go straight into the cooldown
 -- frame, which accepts Secret Values; nothing here compares them. Mirrors
 -- ActionButton_ApplyCooldown in Blizzard_ActionBar/Shared/ActionButton.lua.
@@ -174,31 +230,13 @@ local function refreshButton(b)
         b.cooldown:Clear()
     end
 
-    local charges = C_Spell.GetSpellCharges and C_Spell.GetSpellCharges(b.spellID)
-    if charges and charges.maxCharges and charges.maxCharges > 1 then
-        b.count:SetText(charges.currentCharges)
-        b.count:Show()
-    else
-        b.count:Hide()
-    end
-
-    if C_Spell.IsSpellUsable then
-        local usable, noMana = C_Spell.IsSpellUsable(b.spellID)
-        if usable then
-            b.icon:SetVertexColor(1, 1, 1)
-        elseif noMana then
-            b.icon:SetVertexColor(0.5, 0.5, 1)
-        else
-            b.icon:SetVertexColor(0.4, 0.4, 0.4)
-        end
-    end
+    optional("charges", showCharges, b)
+    optional("usable", tintUsable, b)
 end
 
 function Bar:RefreshCooldowns()
-    for i = 1, #buttons do
-        if buttons[i]:IsShown() then
-            safecall(refreshButton, buttons[i])
-        end
+    for i = 1, usedCount do
+        safecall(refreshButton, buttons[i])
     end
 end
 
@@ -212,11 +250,14 @@ local function raidStyleParty()
     return CompactPartyFrame and CompactPartyFrame:IsShown() or false
 end
 
+-- Follows the anchor target only while it is actually on screen: the three
+-- globals are permanent frames that exist (with a stale rect) even when
+-- hidden, e.g. a third-party raid addon or raid frames off in Edit Mode.
 local function anchor(count)
     local name = Bar.AnchorTarget(IsInRaid(), IsInGroup(), raidStyleParty())
     local target = name and _G[name]
     container:ClearAllPoints()
-    if not target or count == 0 then
+    if not target or not target:IsShown() or count == 0 then
         container:Hide()
         return
     end
@@ -242,7 +283,11 @@ function Bar:Apply()
     applyQueued = false
 
     local list = ns.Core:Bar()
-    local size = placement().size or Bar.DEFAULT_SIZE
+    usedCount = #list
+
+    local place = placement()
+    place.size = Bar.ClampSize(place.size)
+    local size = place.size
     local width, offsets = Bar.Layout(#list, size)
 
     for i = 1, Bar.MAX_SLOTS do
@@ -275,13 +320,7 @@ function Bar:Apply()
 end
 
 function Bar:SlotCount()
-    local n = 0
-    for i = 1, #buttons do
-        if buttons[i]:IsShown() then
-            n = n + 1
-        end
-    end
-    return n
+    return usedCount
 end
 
 function Bar:Initialize()
