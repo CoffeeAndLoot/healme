@@ -46,6 +46,12 @@ return function(h, m)
             h.eq(result.bindings[1].key.button, "BUTTON2")
         end)
 
+        h.it("guarantees a bar table on import", function()
+            local text = Serialize.Export({ bindings = {}, settings = {} }, codec)
+            local result = Serialize.Import(text, codec)
+            h.eq(type(result.bar), "table")
+        end)
+
         h.it("rejects text without the prefix", function()
             local result, err = Serialize.Import("garbage", codec)
             h.falsy(result)
@@ -186,6 +192,29 @@ return function(h, m)
         h.it("decodes a string from before the frames field as every frame", function()
             local back = real.decode("s^0~b^BUTTON1^^spell^Rejuvenation^^^^^1").bindings[1]
             h.eq(back.frames, nil)
+        end)
+
+        h.it("round-trips the bar in order after the settings record", function()
+            local text = real.encode({
+                bindings = {},
+                settings = { alsoTarget = false },
+                bar = { "Tranquility", "Nature's Swiftness" },
+            })
+            h.eq(text, "s^0~c^Tranquility~c^Nature's Swiftness")
+            local back = real.decode(text)
+            h.eq(#back.bar, 2)
+            h.eq(back.bar[1], "Tranquility")
+            h.eq(back.bar[2], "Nature's Swiftness")
+        end)
+
+        h.it("escapes separators in a bar spell name", function()
+            local back = real.decode(real.encode({ bindings = {}, settings = {}, bar = { "A^B~C" } }))
+            h.eq(back.bar[1], "A^B~C")
+        end)
+
+        h.it("decodes a string from before the bar as an empty bar", function()
+            local back = real.decode("s^0~b^BUTTON1^^spell^Rejuvenation^^^^^1")
+            h.eq(#back.bar, 0)
         end)
 
         h.it("round-trips a disabled binding", function()

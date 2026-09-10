@@ -1113,12 +1113,14 @@ function Options:ShowShare(mode)
                 local current = #ns.Core:Bindings()
                 W.Confirm("Replace the " .. current .. " binding"
                     .. (current == 1 and "" or "s") .. " in " .. tostring(ns.Core.profileName)
-                    .. " with the " .. #profile.bindings .. " from this string?", function()
+                    .. " with the " .. #profile.bindings .. " from this string?"
+                    .. " The cooldown bar is replaced too.", function()
                     local accepted, skipped = ns.Bindings.Sanitize(profile.bindings,
                         ns.Core:ValidationDeps())
                     ns.Core.db.profile.bindings = accepted
                     ns.Core.db.profile.settings.alsoTarget =
                         profile.settings.alsoTarget and true or false
+                    ns.Core.db.profile.bar = ns.Bar.Sanitize(profile.bar)
                     selectedId = nil
                     ns.Core:NotifyChanged()
                     local message = "imported " .. #accepted .. " bindings"
@@ -1151,10 +1153,11 @@ function Options:ShowShare(mode)
         s.box:SetText(ns.Serialize.Export({
             bindings = ns.Core:Bindings(),
             settings = ns.Core:Settings(),
+            bar = ns.Core:Bar(),
         }, ns.Serialize.codec))
     else
         title = "Import bindings"
-        s.hint:SetText("Paste a string here. It replaces every binding in this profile.")
+        s.hint:SetText("Paste a string here. It replaces every binding and the cooldown bar in this profile.")
         s.action:SetText("Import")
         s.box:SetText("")
     end

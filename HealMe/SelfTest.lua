@@ -260,7 +260,7 @@ end
 
 local function checkRoundTrip(r)
     local Serialize, Core = ns.Serialize, ns.Core
-    local profile = { bindings = Core:Bindings(), settings = Core:Settings() }
+    local profile = { bindings = Core:Bindings(), settings = Core:Settings(), bar = Core:Bar() }
     local text = Serialize.Export(profile, Serialize.codec)
     local back, err = Serialize.Import(text, Serialize.codec)
     if not back then
