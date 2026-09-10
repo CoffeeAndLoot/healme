@@ -32,7 +32,8 @@ for it.
 The hard constraints in the main spec §3 apply unchanged:
 
 - Buttons are `SecureActionButtonTemplate`. Attribute writes, Show/Hide, and
-  reparenting go through `Secure`'s combat queue. Never direct.
+  reparenting go through the bar's own combat queue, flushed on
+  `PLAYER_REGEN_ENABLED`. Never direct.
 - Cooldown data comes from `C_Spell.GetSpellCooldown` and
   `C_Spell.GetSpellCharges`, and is passed **untouched** into
   `Cooldown:SetCooldown(start, duration, modRate)`. That is what Blizzard's own
@@ -41,7 +42,9 @@ The hard constraints in the main spec §3 apply unchanged:
   never compares or does arithmetic on them. `isActive` is used only as a
   truthy check, as Blizzard does.
 - Usability dimming reads `C_Spell.IsSpellUsable` and sets a vertex colour.
-  Display only.
+  Display only. Charge count and usability tint each run in their own
+  protected call and switch off for the session after a first failure, so a
+  value the client makes secret can never cost the swipe.
 
 ## 4. Data model
 
@@ -144,6 +147,10 @@ Bar.AnchorTarget(inRaid, inParty, raidStyleParty)
 | in a party, classic frames    | `PartyFrame`               |
 | solo, or target frame missing | hide                       |
 
+The target must be on screen, not merely exist: the three globals are
+permanent, and a hidden one (third-party raid frames, or raid frames off in
+Edit Mode) hides the bar.
+
 `side == "above"` anchors `BOTTOM` of the bar to `TOP` of the target;
 `"below"` anchors `TOP` to `BOTTOM`. Horizontal alignment is `LEFT` to `LEFT`
 so the bar starts where the frames start.
@@ -171,9 +178,10 @@ a sentinel and `Apply` reading a saved point instead.
 A new top tab, "Bar", between Bindings and Settings. Built from the existing
 widgets:
 
-- **Spell list.** `Widgets.ListRow` per slot: icon, name, up / down arrows,
-  and a remove button. Remove goes through `Widgets.Confirm`. Reorder swaps
-  entries in `profile.bar` and notifies.
+- **Spell list.** `Widgets.ListRow` per slot: icon and name; selecting a row
+  shows Move up, Move down and Remove on the plate, the same shape as the
+  Profiles tab. Remove goes through `Widgets.Confirm`. Reorder swaps entries
+  in `profile.bar` and notifies.
 - **Add.** `Widgets.SpellbookPicker`, the same control the binding editor
   uses. Picking a spell appends it, refusing duplicates and refusing when
   the list is full.
@@ -189,8 +197,9 @@ per the existing editor rule.
 ## 8. Error handling
 
 - Unknown spell name at add time: editor refuses, message under the picker.
-- Spell stops resolving later: slot goes empty, no error, nothing logged. The
-  Bar tab shows the row with a red name so the player can see why.
+- Spell stops resolving later: the slot keeps its place, greyed, with no
+  attribute; no error, nothing logged. The Bar tab shows the row with a red
+  name so the player can see why.
 - Anchor target missing: bar hides; the Bar tab note covers it.
 - Every event handler runs through the same `safecall` wrapper `Secure`
   uses, so a Blizzard API rename costs the bar, not the addon.
@@ -217,7 +226,7 @@ In-game (`docs/manual-test-checklist.md` gains a "Cooldown bar" section):
 - Change spec; bar swaps with the profile.
 - Join a raid mid-combat; bar re-anchors after combat drops.
 - Leave group; bar hides.
-- Disable a spell via talents; slot goes empty, no Lua error.
+- Disable a spell via talents; the slot greys out, no Lua error.
 
 The self-test gains one line: the bar container exists and its slot count
 matches the profile.
@@ -239,3 +248,5 @@ Read directly on 2026-09-09.
   `live`: `ActionButton_UpdateCooldown` (lines 823-843) and
   `ActionButton_ApplyCooldown` (853-867) for the cooldown API shape and the
   fact that start / duration / modRate are passed through untouched.
+- `C_Spell.IsSpellUsable` and `C_Spell.GetSpellCharges` return values are
+  guarded rather than assumed plain, pending an in-client check on 12.1.

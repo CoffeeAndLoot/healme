@@ -236,7 +236,7 @@ API at all, which is what makes the riskiest logic testable on the desktop.
 | `Minimap.lua` | The minimap button and its account-wide position. | Options |
 | `Registry.lua` | Frame discovery. Hooks Blizzard compact raid/party/player/target/focus frames; owns the `ClickCastFrames` global table and the `ClickCastHeader` secure header so third-party addons self-register. Does **not** read per-frame `unit` attributes; the §7 fallback is designed but not implemented. | — |
 | `Secure.lua` | The only module that touches secure frames. Owns the secure header and its snippets, applies compiled attributes, manages the combat queue, manages wheel bindings. | Compiler, Registry |
-| `Bar.lua` | The cooldown bar: secure spell slots, cooldown display, anchoring to the group frames. | Secure, Registry |
+| `Bar.lua` | The cooldown bar: secure spell slots, cooldown display, anchoring to the group frames. | Core |
 | `Widgets.lua` | Constructors for the panel's controls and art, on Blizzard's own templates and atlases with plain fallbacks. | none |
 | `Options.lua` | A standalone portrait window: tabs, a grouped binding list, the editor, the settings page and the share window. | Bindings, Widgets |
 | `Serialize.lua` | Export/import strings, and the field-based codec that produces them. | none |

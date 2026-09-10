@@ -422,12 +422,16 @@ on screen.
 - [ ] Typing a made-up name and pressing Add is refused
 - [ ] Join a party or raid: the bar appears above the group frames, left
       edges aligned, one button per spell
+- [ ] With a third-party raid addon active, or Blizzard raid frames turned
+      off in Edit Mode, the bar hides; turn them back on and it returns
 - [ ] *(self-test)* "cooldown bar shows N of N slots"
 - [ ] Side: Below moves it under the frames; Size changes the buttons
 - [ ] Open Edit Mode, drag the raid frames, exit: the bar follows
 - [ ] Hover a button: the spell tooltip shows
 - [ ] Click a button out of combat: the spell casts
 - [ ] Pull a mob, click a button: it casts, and the swipe and countdown run
+- [ ] Click a bar button bound to a cast-time spell (Tranquility, Divine
+      Hymn): exactly one cast starts, no double GCD
 - [ ] While in combat, open the Bar tab and add a spell: the new button
       appears only after combat ends, with no Lua error
 - [ ] Select a spell, Move up / Move down: the bar reorders
@@ -435,6 +439,9 @@ on screen.
 - [ ] Switch specialisation: the bar changes with the profile; a spell the
       new spec lacks shows greyed with a question mark and a red row
 - [ ] Leave the group: the bar hides. Rejoin: it returns
+- [ ] In a party, pull a mob, then have the leader convert to raid
+      mid-combat: the bar re-anchors to the raid frames once combat ends,
+      no Lua error
 - [ ] Export, then import into another profile: the bar comes along and the
       confirm text says so
 - [ ] `/reload` in a raid: no Lua errors, bar in place
