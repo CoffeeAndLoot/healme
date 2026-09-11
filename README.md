@@ -1,5 +1,9 @@
 # HealMe
 
+[![CI](https://img.shields.io/github/actions/workflow/status/CoffeeAndLoot/healme/test.yml?branch=main&label=CI&logo=github)](https://github.com/CoffeeAndLoot/healme/actions/workflows/test.yml)
+[![Release](https://img.shields.io/github/v/release/CoffeeAndLoot/healme?label=release)](https://github.com/CoffeeAndLoot/healme/releases/latest)
+[![Wago](https://img.shields.io/badge/wago-addons-c1272d)](https://addons.wago.io/addons/healme)
+
 Click-casting for World of Warcraft healers. Bind spells to mouse buttons and
 the mouse wheel, then heal by clicking unit frames instead of targeting and
 pressing a key.
